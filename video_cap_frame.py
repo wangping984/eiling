@@ -1,6 +1,9 @@
 import argparse
 import os
 
+IMAGE_EXT = [".jpg", ".jpeg", ".webp", ".bmp", ".png"]
+VIDEO_EXT = [".mp4", ".avi"]
+
 def make_parser():
     parser = argparse.ArgumentParser(description="Capture frames from video!")
     parser.add_argument(
@@ -47,3 +50,8 @@ def make_parser():
 
 if __name__ == "__main__":
     args = make_parser().parse_args()
+
+    for x in args.input:
+        if os.path.isdir(x):
+            file = [f for f in os.listdir(x) if f.lower().endswith(".mp4")]
+            
