@@ -1,3 +1,8 @@
+from pathlib import Path
+
+print(Path('/root/dir/sub/onlyfile.ext').stem)
+
+
 a = 'abc' + '.jpg'
 print(a)
 

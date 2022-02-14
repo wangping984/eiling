@@ -12,10 +12,11 @@
             "args": [
                 "--input",
                 "/home/wp/Downloads",
+                "/home/wp/Downloads/1/20190408033414_020312AA.MP4",
                 "--output",
                 "/home/wp/Downloads/frames",
                 "--period",
-                "35"
+                "300"
             ],
             "console": "integratedTerminal"
         }
