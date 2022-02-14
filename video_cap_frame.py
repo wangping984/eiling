@@ -104,5 +104,6 @@ if __name__ == "__main__":
                 capture(x,args)
             
         else:
+            print("file or directory not exist")
             quit()
         
