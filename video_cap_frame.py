@@ -1,7 +1,7 @@
 import argparse
 import os
 
-IMAGE_EXT = [".jpg", ".jpeg", ".webp", ".bmp", ".png"]
+IMAGE_EXT = [".jpg", ".jpeg", ".bmp", ".png"]
 VIDEO_EXT = [".mp4", ".avi"]
 
 def make_parser():
@@ -53,5 +53,8 @@ if __name__ == "__main__":
 
     for x in args.input:
         if os.path.isdir(x):
-            file = [f for f in os.listdir(x) if f.lower().endswith(".mp4")]
+            file = []
+            for ext in VIDEO_EXT:
+                file = file + [f for f in os.listdir(x) if f.lower().endswith(ext)]
+            print(file)
             
