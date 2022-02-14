@@ -13,7 +13,7 @@ def make_parser():
         "-i",
         "--input",
         type=str,
-        help="input video file/files or folder path including videos.",
+        help="input video file/files or folder path including videos. Only mp4 and avi is valid.",
         required=False,
         default=os.getcwd(),
         nargs="+"
@@ -98,7 +98,7 @@ if __name__ == "__main__":
         elif os.path.isfile(x):
             _, ext = os.path.splitext(x)
             if ext.lower() not in VIDEO_EXT:
-                print("input file is not valid video format")
+                print("input file is not valid video format. Only mp4 and avi is valid.")
                 quit()
             else:
                 capture(x,args)
