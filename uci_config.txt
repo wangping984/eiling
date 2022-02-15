@@ -1,0 +1,111 @@
+uci show
+uci show network
+
+
+uci set network.lan.ipaddr=192.168.3.1
+uci set network.wan.proto=pppoe
+uci set network.wan.username=01011718443
+uci set network.wan.password=959298
+uci commit network
+/etc/init.d/network restart
+done!
+
+
+
+original configs:
+network.loopback=interface
+network.loopback.device='lo'
+network.loopback.proto='static'
+network.loopback.ipaddr='127.0.0.1'
+network.loopback.netmask='255.0.0.0'
+network.globals=globals
+network.globals.ula_prefix='fd19:f361:5a2b::/48'
+network.@device[0]=device
+network.@device[0].name='br-lan'
+network.@device[0].type='bridge'
+network.@device[0].ports='eth1'
+network.@device[1]=device
+network.@device[1].name='eth1'
+network.@device[1].macaddr='c0:74:2b:ff:af:4e'
+network.lan=interface
+network.lan.device='br-lan'
+network.lan.proto='static'
+network.lan.ipaddr='192.168.2.1'
+network.lan.netmask='255.255.255.0'
+network.lan.ip6assign='60'
+network.@device[2]=device
+network.@device[2].name='eth0'
+network.@device[2].macaddr='c0:74:2b:ff:af:4d'
+network.wan=interface
+network.wan.device='eth0'
+network.wan.proto='dhcp'
+network.wan6=interface
+network.wan6.device='eth0'
+network.wan6.proto='dhcpv6'
+network.docker=interface
+network.docker.device='docker0'
+network.docker.proto='none'
+network.docker.auto='0'
+network.@device[3]=device
+network.@device[3].type='bridge'
+network.@device[3].name='docker0'
+
+rpi configs:
+network.loopback=interface
+network.loopback.ifname='lo'
+network.loopback.proto='static'
+network.loopback.ipaddr='127.0.0.1'
+network.loopback.netmask='255.0.0.0'
+network.globals=globals
+network.globals.ula_prefix='fd44:19e7:6ce2::/48'
+network.lan=interface
+network.lan.type='bridge'
+network.lan.proto='static'
+network.lan.netmask='255.255.255.0'
+network.lan.ip6assign='60'
+network.lan._orig_ifname='eth0 wlan0'
+network.lan._orig_bridge='true'
+network.lan.ifname='eth0'
+network.lan.ipaddr='192.168.2.1'
+network.vpn0=interface
+network.vpn0.ifname='tun0'
+network.vpn0.proto='none'
+network.wan=interface
+network.wan.ifname='eth1'
+network.wan._orig_ifname='eth1'
+network.wan._orig_bridge='false'
+network.wan.proto='pppoe'
+network.wan.username='01011718443'
+network.wan.password='959298'
+network.wan.ipv6='auto'
+network.wan.keepalive='0'
+
+opkg update
+opkg list-installed
+
+confirm that luci-app-openclash dependencies are all installed 
+opkg install coreutils-nohup
+opkg install iptables
+opkg install curl
+opkg install ip-full
+opkg install libcap-bin
+opkg install luci-app-openclash_0.44.25-beta_all.ipk
+
+reboot
+
+web control openclash menu
+global setting -> version update
+select linux-armv8
+
+download clash core for armv8, extract file on PC
+sftp root@openwrthost
+cd /etc/openclash/core/
+put /home/wp/Downloads/clash-linux-armv8/clash 
+
+web control openclash menu -> config update
+config alias: nerwo(any name is ok)
+subscribe address:
+https://subscribe.acort.cn/sub/LsKBpobeBCbuAghI.html?type=newclash
+but at this moment, the subscribe address could not be accessed.
+so config.yaml file should be uploaded manually to enable internet traffic go across china internet firewall.
+
