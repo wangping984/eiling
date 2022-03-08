@@ -4,12 +4,15 @@
 #include <WiFi.h>
 #include <AsyncUDP.h> //引用以使用异步UDP
 #include <WiFiAP.h>
+#include <Wire.h>
+#include <Adafruit_MCP4725.h>
 
 AsyncUDP  Udp;                      //创建UDP对象
 unsigned int UdpPort = 3333; //本地端口号
 IPAddress remoteUDP_Ip(192, 168, 4, 2);
 const char *ssid = "test";
 const char *password = "12345678";
+Adafruit_MCP4725 dac;
 
 void wifi_init(void) {
   Serial.begin(115200);
@@ -60,6 +63,9 @@ void setup() {
   {
   }
   Udp.onPacket(onPacketCallBack); //注册收到数据包事件
+  Wire.begin(SDA, SCL);
+  dac.begin(0x60);
+  dac.setVoltage(2048, false);
 }
 
 void loop() {
