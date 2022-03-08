@@ -24,7 +24,14 @@ IPAddress remoteUDP_Ip(192, 168, 4, 2);
 const char *ssid = "test";
 const char *password = "12345678";
 Adafruit_MCP4725 dac;
-unsigned int dac_val=2048;
+unsigned int dac_val = 2048;
+byte key_val = 72;  //01001000
+unsigned long startMillis;  //some global variables available anywhere in the program
+unsigned long currentMillis;
+const unsigned long period = 100;  //the value is a number of milliseconds
+unsigned long startMillis2;  //some global variables available anywhere in the program
+unsigned long currentMillis2;
+const unsigned long period2 = 1000;  //the value is a number of milliseconds
 
 void wifi_init(void) {
   Serial.begin(115200);
@@ -42,7 +49,7 @@ void wifi_init(void) {
 
   IPAddress myIP = WiFi.softAPIP();
   Serial.print("AP IP address: ");
-  Serial.println(myIP); 
+  Serial.println(myIP);
 }
 
 void onPacketCallBack(AsyncUDPPacket packet)
@@ -74,15 +81,62 @@ void cmd_setdac(MyCommandParser::Argument *args, char *response) {
   dac.setVoltage(dac_val, false);
   String cstr = String(dac_val);
   cstr = "dac_val = " + cstr ;
-  char buf[cstr.length()+1];
+  char buf[cstr.length() + 1];
   // string to char array, length should increase 1 for null termination
-  cstr.toCharArray(buf, cstr.length()+1);
+  cstr.toCharArray(buf, cstr.length() + 1);
   // send udp could be length of 4
   Udp.writeTo((const uint8_t*)buf, cstr.length(), remoteUDP_Ip, UdpPort);
 }
 
+byte shiftIn(int myDataPin, int myClockPin) {
+  int i;
+  int temp = 0;
+  int pinState;
+  byte myDataIn = 0;
+
+  //  pinMode(myClockPin, OUTPUT);
+  //
+  //  pinMode(myDataPin, INPUT);
+  //we will be holding the clock pin high 8 times (0,..,7) at the
+  //end of each time through the for loop
+
+  //at the beginning of each loop when we set the clock low, it will
+  //be doing the necessary low to high drop to cause the shift
+  //register's DataPin to change state based on the value
+  //of the next bit in its serial information flow.
+  //The register transmits the information about the pins from pin 7 to pin 0
+  //so that is why our function counts down
+  for (i = 7; i >= 0; i--)
+  {
+    digitalWrite(myClockPin, 0);
+    delayMicroseconds(100);
+    temp = digitalRead(myDataPin);
+    if (temp) {
+      pinState = 1;
+      //set the bit to 0 no matter what
+      myDataIn = myDataIn | (1 << i);
+    }
+    else {
+      //turn it off -- only necessary for debugging
+      //print statement since myDataIn starts as 0
+      pinState = 0;
+    }
+    //Debugging print statements
+    //Serial.print(pinState);
+    //Serial.print("     ");
+    //Serial.println (dataIn, BIN);
+    digitalWrite(myClockPin, 1);
+    delayMicroseconds(100);
+  }
+  //debugging print statements whitespace
+  //Serial.println();
+  //Serial.println(myDataIn, BIN);
+  return myDataIn;
+}
+
 void setup() {
   // put your setup code here, to run once:
+
   //set the resolution to 12 bits (0-4096)
   analogReadResolution(12);
   wifi_init();
@@ -93,25 +147,72 @@ void setup() {
   Wire.begin(SDA, SCL);
   dac.begin(0x60);
   dac.setVoltage(2048, false);
-  
+
   parser.registerCommand("setdac", "u", &cmd_setdac); // two int64_t arguments
   char response[MyCommandParser::MAX_RESPONSE_SIZE];
+
+  //define pin modes
+  pinMode(KEY_LOAD, OUTPUT);
+  pinMode(KEY_CLK, OUTPUT);
+  pinMode(KEY_DAT, INPUT);
+  digitalWrite(KEY_LOAD, 1);
+  digitalWrite(KEY_CLK, 0);
+
+  startMillis = millis();  //initial start time
+  startMillis2 = millis();  //initial start time
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  unsigned int A1 = analogRead(AIN1);
-  float volt = (float)A1 / 4095 * 2.5;
-  //  float volt = 1.23;
-  //  this string has length of 4
-  String cstr = String(volt, 2);
-  cstr = "Ain1 = " + cstr + " V";
-  char buf[cstr.length()+1];
-  // string to char array, length should increase 1 for null termination
-  cstr.toCharArray(buf, cstr.length()+1);
-  // send udp could be length of 4
-  Udp.writeTo((const uint8_t*)buf, cstr.length(), remoteUDP_Ip, UdpPort);
-  delay(1000);
-//  char response[MyCommandParser::MAX_RESPONSE_SIZE];
-//  parser.processCommand("setdac 1024", response);
+  //  unsigned int A1 = analogRead(AIN1);
+  //  float volt = (float)A1 / 4095 * 2.5;
+  //  //  float volt = 1.23;
+  //  //  this string has length of 4
+  //  String cstr = String(volt, 2);
+  //  cstr = "Ain1 = " + cstr + " V";
+  //  char buf[cstr.length()+1];
+  //  // string to char array, length should increase 1 for null termination
+  //  cstr.toCharArray(buf, cstr.length()+1);
+  //  // send udp could be length of 4
+  //  Udp.writeTo((const uint8_t*)buf, cstr.length(), remoteUDP_Ip, UdpPort);
+  //  delay(1000);
+
+  currentMillis = millis();  //get the current "time" (actually the number of milliseconds since the program started)
+  if (currentMillis - startMillis >= period)  //test whether the period has elapsed
+  {
+    digitalWrite(KEY_LOAD, 1);
+    //set it to 1 to collect parallel data, wait
+    delayMicroseconds(20);
+    //set it to 0 to transmit data serially
+    digitalWrite(KEY_LOAD, 0);
+    //while the shift register is in serial mode
+    //collect each shift register into a byte
+    //the register attached to the chip comes in first
+    key_val = shiftIn(KEY_DAT, KEY_CLK);
+    String cstr = String(key_val,BIN);
+    cstr = "key val = " + cstr ;
+    char buf[cstr.length() + 1];
+    // string to char array, length should increase 1 for null termination
+    cstr.toCharArray(buf, cstr.length() + 1);
+    Udp.writeTo((const uint8_t*)buf, cstr.length(), remoteUDP_Ip, UdpPort);
+    
+
+    startMillis = currentMillis;  //IMPORTANT to save the start time of the current LED state.
+  }
+  currentMillis2 = millis();
+  if (currentMillis2 - startMillis2 >= period2)  //test whether the period has elapsed
+  {
+    unsigned int A1 = analogRead(AIN1);
+    float volt = (float)A1 / 4095 * 2.5;
+    String cstr = String(volt, 2);
+    cstr = "Ain1 = " + cstr + " V";
+    char buf[cstr.length() + 1];
+    // string to char array, length should increase 1 for null termination
+    cstr.toCharArray(buf, cstr.length() + 1);
+    // send udp could be length of 4
+    Udp.writeTo((const uint8_t*)buf, cstr.length(), remoteUDP_Ip, UdpPort);
+
+    startMillis2 = currentMillis2;  //IMPORTANT to save the start time of the current LED state.
+  }
+
 }
