@@ -6,6 +6,17 @@
 #include <WiFiAP.h>
 #include <Wire.h>
 #include <Adafruit_MCP4725.h>
+#include <CommandParser.h>
+
+// all of the template arguments below are optional, but it is useful to adjust them to save memory (by lowering the limits) or allow larger inputs (by increasing the limits)
+// limit number of commands to at most 5
+// limit number of arguments per command to at most 3
+// limit length of command names to 10 characters
+// limit size of all arguments to 15 bytes (e.g., the argument "\x41\x42\x43" uses 14 characters to represent the string but is actually only 3 bytes, 0x41, 0x42, and 0x43)
+// limit size of response strings to 64 bytes
+//typedef CommandParser<5, 3, 10, 15, 64> MyCommandParser;
+typedef CommandParser<5, 3, 10, 15, 64> MyCommandParser;
+MyCommandParser parser;
 
 AsyncUDP  Udp;                      //创建UDP对象
 unsigned int UdpPort = 3333; //本地端口号
@@ -13,6 +24,7 @@ IPAddress remoteUDP_Ip(192, 168, 4, 2);
 const char *ssid = "test";
 const char *password = "12345678";
 Adafruit_MCP4725 dac;
+unsigned int dac_val=2048;
 
 void wifi_init(void) {
   Serial.begin(115200);
@@ -30,8 +42,9 @@ void wifi_init(void) {
 
   IPAddress myIP = WiFi.softAPIP();
   Serial.print("AP IP address: ");
-  Serial.println(myIP);
+  Serial.println(myIP); 
 }
+
 void onPacketCallBack(AsyncUDPPacket packet)
 {
 
@@ -52,8 +65,22 @@ void onPacketCallBack(AsyncUDPPacket packet)
   Serial.println();
   packet.printf("Got %u bytes of data", packet.length());
   Udp.writeTo(packet.data(), packet.length(), remoteUDP_Ip, UdpPort);
-
+  char response[MyCommandParser::MAX_RESPONSE_SIZE];
+  parser.processCommand((const char*)packet.data(), response);
 }
+
+void cmd_setdac(MyCommandParser::Argument *args, char *response) {
+  dac_val = args[0].asUInt64;
+  dac.setVoltage(dac_val, false);
+  String cstr = String(dac_val);
+  cstr = "dac_val = " + cstr ;
+  char buf[cstr.length()+1];
+  // string to char array, length should increase 1 for null termination
+  cstr.toCharArray(buf, cstr.length()+1);
+  // send udp could be length of 4
+  Udp.writeTo((const uint8_t*)buf, cstr.length(), remoteUDP_Ip, UdpPort);
+}
+
 void setup() {
   // put your setup code here, to run once:
   //set the resolution to 12 bits (0-4096)
@@ -66,6 +93,9 @@ void setup() {
   Wire.begin(SDA, SCL);
   dac.begin(0x60);
   dac.setVoltage(2048, false);
+  
+  parser.registerCommand("setdac", "u", &cmd_setdac); // two int64_t arguments
+  char response[MyCommandParser::MAX_RESPONSE_SIZE];
 }
 
 void loop() {
@@ -82,4 +112,6 @@ void loop() {
   // send udp could be length of 4
   Udp.writeTo((const uint8_t*)buf, cstr.length(), remoteUDP_Ip, UdpPort);
   delay(1000);
+//  char response[MyCommandParser::MAX_RESPONSE_SIZE];
+//  parser.processCommand("setdac 1024", response);
 }
