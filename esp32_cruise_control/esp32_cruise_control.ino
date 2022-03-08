@@ -33,6 +33,43 @@ unsigned long startMillis2;  //some global variables available anywhere in the p
 unsigned long currentMillis2;
 const unsigned long period2 = 1000;  //the value is a number of milliseconds
 
+int state_cc = 0;
+int state_prev_cc = 0;
+
+void SM_cc(bool key_cc, bool key_set, bool key_cancel, bool GPS_OK) {
+  state_prev_cc = state_cc;
+  switch (state_cc) {
+    case 0: //INIT state
+      state_cc = 1;
+      break;
+
+    case 1: // pass thru state
+      if (key_cc && GPS_OK) {
+        state_cc = 2;
+      }
+      break;
+
+    case 2: // pre_cruise state
+      if (key_set && GPS_OK) {
+        state_cc = 3;
+      }
+      if (GPS_OK == false) {
+        state_cc = 1;
+      }
+      break;
+
+    case 3: // cruising state
+      if (GPS_OK == false) {
+        state_cc = 1;
+      }
+      if (key_cancel) {
+        state_cc = 2;
+      }
+      break;
+
+  }
+}
+
 void wifi_init(void) {
   Serial.begin(115200);
   Serial.println("Configuring access point...");
@@ -189,13 +226,13 @@ void loop() {
     //collect each shift register into a byte
     //the register attached to the chip comes in first
     key_val = shiftIn(KEY_DAT, KEY_CLK);
-    String cstr = String(key_val,BIN);
+    String cstr = String(key_val, BIN);
     cstr = "key val = " + cstr ;
     char buf[cstr.length() + 1];
     // string to char array, length should increase 1 for null termination
     cstr.toCharArray(buf, cstr.length() + 1);
     Udp.writeTo((const uint8_t*)buf, cstr.length(), remoteUDP_Ip, UdpPort);
-    
+
 
     startMillis = currentMillis;  //IMPORTANT to save the start time of the current LED state.
   }
