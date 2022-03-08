@@ -50,8 +50,6 @@ void onPacketCallBack(AsyncUDPPacket packet)
   packet.printf("Got %u bytes of data", packet.length());
   Udp.writeTo(packet.data(), packet.length(), remoteUDP_Ip, UdpPort);
 
-  //  packet.print("reply data");
-  //  broadcastPort = packet.remotePort();
 }
 void setup() {
   // put your setup code here, to run once:
@@ -67,16 +65,15 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
   unsigned int A1 = analogRead(AIN1);
-  //  float volt = (float)A1/4095*2.5;
-  float volt = 1.23;
-//  this string has length of 4
+  float volt = (float)A1 / 4095 * 2.5;
+  //  float volt = 1.23;
+  //  this string has length of 4
   String cstr = String(volt, 2);
-  char buf[5];
+  cstr = "Ain1 = " + cstr + " V";
+  char buf[cstr.length()+1];
   // string to char array, length should increase 1 for null termination
-  cstr.toCharArray(buf, 5);
-  //  char cstr[4];
-  //  utoa(A1, cstr, 10);
-// send udp could be length of 4
-  Udp.writeTo((const uint8_t*)buf, 4, remoteUDP_Ip, UdpPort);
+  cstr.toCharArray(buf, cstr.length()+1);
+  // send udp could be length of 4
+  Udp.writeTo((const uint8_t*)buf, cstr.length(), remoteUDP_Ip, UdpPort);
   delay(1000);
 }
