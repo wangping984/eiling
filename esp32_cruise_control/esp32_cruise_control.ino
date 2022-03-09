@@ -73,7 +73,7 @@ void SM_cc()
       {
         state_cc = 3;
       }
-      if (GPS_OK == false)
+      if (GPS_OK == false || key_cc == true)
       {
         state_cc = 1;
       }
@@ -158,7 +158,7 @@ void cmd_debug(MyCommandParser::Argument *args, char *response)
   if (arg1 != 0) {
     if (arg0 == "SM")debug_sm = true;
     if (arg0 == "keyp")debug_keypad = true;
-  }else{
+  } else {
     if (arg0 == "SM")debug_sm = false;
     if (arg0 == "keyp")debug_keypad = false;
   }
@@ -231,25 +231,39 @@ void key_pressed_detect() {
   // collect each shift register into a byte
   // the register attached to the chip comes in first
   key_val = shiftIn(KEY_DAT, KEY_CLK);
-  byte temp = 255;
-  byte onehot_key = temp & key_val;
+  key_cc = false;
+  key_cancel = false;
+  key_set = false;
+  key_res = false;
+  key_inc = false;
+  key_dec = false;
+
+  byte onehot_key = ~key_val;
+  // bit 0, 1, left
+  // bit 1, 2, right
+  // bit 2, 4, down, key_dec
+  // bit 3, 8, up, key_inc
+  // bit 4, 16, start, key_set
+  // bit 5, 32, select, key_cc
+  // bit 6, 64, A, key_cancel
+  // bit 7, 128, B, key_res
   switch (onehot_key) {
-    case 1: // cruise
+    case 32: // cruise
       key_cc = true;
       break;
-    case 2: // cancel
+    case 64: // cancel
       key_cancel = true;
       break;
-    case 4: // set
+    case 16: // set
       key_set = true;
       break;
-    case 8: // restore
+    case 128: // restore
       key_res = true;
       break;
-    case 16: // increase
+    case 8: // increase
       key_inc = true;
       break;
-    case 32: // decrease
+    case 4: // decrease
       key_dec = true;
       break;
   }
@@ -258,13 +272,29 @@ void key_pressed_detect() {
 
 
 void debug_info() {
+  String cstr;
+  char buf[50];
   if (debug_sm == true) {
-    return;
+    cstr = String(state_cc);
+    cstr = "state_cc = " + cstr;
+    
+    // string to char array, length should increase 1 for null termination
+    cstr.toCharArray(buf, cstr.length() + 1);
+    Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
+    if (key_cc == true) {
+      cstr = "key_cc = 1";
+    } else {
+      cstr = "key_cc = 0";
+    }
+   
+    // string to char array, length should increase 1 for null termination
+    cstr.toCharArray(buf, cstr.length() + 1);
+    Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
   }
   if (debug_keypad == true) {
-    String cstr = String(key_val, BIN);
+    cstr = String(key_val, BIN);
     cstr = "key val = " + cstr;
-    char buf[cstr.length() + 1];
+    
     // string to char array, length should increase 1 for null termination
     cstr.toCharArray(buf, cstr.length() + 1);
     Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
@@ -307,6 +337,7 @@ void loop()
   currentMillis = millis();                  // get the current "time" (actually the number of milliseconds since the program started)
   if (currentMillis - startMillis >= period) // test whether the period has elapsed
   {
+    GPS_OK = true;
     key_pressed_detect();
     SM_cc();
     debug_info();
