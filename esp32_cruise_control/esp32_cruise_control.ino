@@ -45,6 +45,9 @@ bool key_inc = false;
 bool key_dec = false;
 bool GPS_OK = false;
 
+bool debug_sm = false;
+bool debug_keypad = false;
+
 void SM_cc()
 {
   state_prev_cc = state_cc;
@@ -146,6 +149,29 @@ void cmd_setdac(MyCommandParser::Argument *args, char *response)
   Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
 }
 
+void cmd_debug(MyCommandParser::Argument *args, char *response)
+{
+  String arg0;
+  int arg1;
+  arg0 = args[0].asString;
+  arg1 = args[1].asInt64;
+  if (arg1 != 0) {
+    if (arg0 == "SM")debug_sm = true;
+    if (arg0 == "keyp")debug_keypad = true;
+  }else{
+    if (arg0 == "SM")debug_sm = false;
+    if (arg0 == "keyp")debug_keypad = false;
+  }
+
+  //  String cstr = String(dac_val);
+  //  cstr = "dac_val = " + cstr;
+  //  char buf[cstr.length() + 1];
+  //  // string to char array, length should increase 1 for null termination
+  //  cstr.toCharArray(buf, cstr.length() + 1);
+  //  // send udp could be length of 4
+  //  Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
+}
+
 byte shiftIn(int myDataPin, int myClockPin)
 {
   int i;
@@ -229,8 +255,7 @@ void key_pressed_detect() {
   }
 }
 
-bool debug_sm = false;
-bool debug_keypad = false;
+
 
 void debug_info() {
   if (debug_sm == true) {
@@ -257,12 +282,13 @@ void setup()
   {
   }
   Udp.onPacket(onPacketCallBack); //注册收到数据包事件
-  
+
   Wire.begin(SDA, SCL);
   dac.begin(0x60);
   dac.setVoltage(2048, false);
 
-  parser.registerCommand("setdac", "u", &cmd_setdac); // two int64_t arguments
+  parser.registerCommand("setdac", "u", &cmd_setdac);
+  parser.registerCommand("debug", "si", &cmd_debug);
   char response[MyCommandParser::MAX_RESPONSE_SIZE];
 
   // define pin modes
