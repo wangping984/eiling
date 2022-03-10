@@ -50,6 +50,7 @@ bool debug_keypad = false;
 
 String cstr;
 char buf[50];
+char response[64];
 
 void SM_cc()
 {
@@ -135,8 +136,7 @@ void onPacketCallBack(AsyncUDPPacket packet)
   Serial.println();
   packet.printf("Got %u bytes of data", packet.length());
   Udp.writeTo(packet.data(), packet.length(), remoteUDP_Ip, UdpPort);
-//  char response[MyCommandParser::MAX_RESPONSE_SIZE];
-//  parser.processCommand((const char *)packet.data(), response);
+  parser.processCommand((const char *)packet.data(), response);
 }
 
 void cmd_setdac(MyCommandParser::Argument *args, char *response)
@@ -340,15 +340,15 @@ void loop()
   currentMillis2 = millis();
   if (currentMillis2 - startMillis2 >= period2) // test whether the period has elapsed
   {
-//    unsigned int A1 = analogRead(AIN1);
-//    float volt = (float)A1 / 4095 * 2.5;
-//    cstr = String(volt, 2);
-//    cstr = "Ain1 = " + cstr + " V";
-//    buf[cstr.length() + 1];
-//    // string to char array, length should increase 1 for null termination
-//    cstr.toCharArray(buf, cstr.length() + 1);
-//    // send udp could be length of 4
-//    Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
+    //    unsigned int A1 = analogRead(AIN1);
+    //    float volt = (float)A1 / 4095 * 2.5;
+    //    cstr = String(volt, 2);
+    //    cstr = "Ain1 = " + cstr + " V";
+    //    buf[cstr.length() + 1];
+    //    // string to char array, length should increase 1 for null termination
+    //    cstr.toCharArray(buf, cstr.length() + 1);
+    //    // send udp could be length of 4
+    //    Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
 
     startMillis2 = currentMillis2; // IMPORTANT to save the start time of the current LED state.
   }
