@@ -28,7 +28,7 @@ unsigned int dac_val = 2048;
 byte key_val = 72;         // 01001000
 unsigned long startMillis; // some global variables available anywhere in the program
 unsigned long currentMillis;
-const unsigned long period = 100; // the value is a number of milliseconds
+const unsigned long period = 400; // the value is a number of milliseconds
 unsigned long startMillis2;       // some global variables available anywhere in the program
 unsigned long currentMillis2;
 const unsigned long period2 = 1000; // the value is a number of milliseconds
@@ -47,6 +47,9 @@ bool GPS_OK = false;
 
 bool debug_sm = false;
 bool debug_keypad = false;
+
+String cstr;
+char buf[50];
 
 void SM_cc()
 {
@@ -132,17 +135,17 @@ void onPacketCallBack(AsyncUDPPacket packet)
   Serial.println();
   packet.printf("Got %u bytes of data", packet.length());
   Udp.writeTo(packet.data(), packet.length(), remoteUDP_Ip, UdpPort);
-  char response[MyCommandParser::MAX_RESPONSE_SIZE];
-  parser.processCommand((const char *)packet.data(), response);
+//  char response[MyCommandParser::MAX_RESPONSE_SIZE];
+//  parser.processCommand((const char *)packet.data(), response);
 }
 
 void cmd_setdac(MyCommandParser::Argument *args, char *response)
 {
   dac_val = args[0].asUInt64;
   dac.setVoltage(dac_val, false);
-  String cstr = String(dac_val);
+  cstr = String(dac_val);
   cstr = "dac_val = " + cstr;
-  char buf[cstr.length() + 1];
+  buf[cstr.length() + 1];
   // string to char array, length should increase 1 for null termination
   cstr.toCharArray(buf, cstr.length() + 1);
   // send udp could be length of 4
@@ -162,14 +165,6 @@ void cmd_debug(MyCommandParser::Argument *args, char *response)
     if (arg0 == "SM")debug_sm = false;
     if (arg0 == "keyp")debug_keypad = false;
   }
-
-  //  String cstr = String(dac_val);
-  //  cstr = "dac_val = " + cstr;
-  //  char buf[cstr.length() + 1];
-  //  // string to char array, length should increase 1 for null termination
-  //  cstr.toCharArray(buf, cstr.length() + 1);
-  //  // send udp could be length of 4
-  //  Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
 }
 
 byte shiftIn(int myDataPin, int myClockPin)
@@ -272,12 +267,10 @@ void key_pressed_detect() {
 
 
 void debug_info() {
-  String cstr;
-  char buf[50];
   if (debug_sm == true) {
     cstr = String(state_cc);
     cstr = "state_cc = " + cstr;
-    
+
     // string to char array, length should increase 1 for null termination
     cstr.toCharArray(buf, cstr.length() + 1);
     Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
@@ -286,7 +279,7 @@ void debug_info() {
     } else {
       cstr = "key_cc = 0";
     }
-   
+
     // string to char array, length should increase 1 for null termination
     cstr.toCharArray(buf, cstr.length() + 1);
     Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
@@ -294,7 +287,7 @@ void debug_info() {
   if (debug_keypad == true) {
     cstr = String(key_val, BIN);
     cstr = "key val = " + cstr;
-    
+
     // string to char array, length should increase 1 for null termination
     cstr.toCharArray(buf, cstr.length() + 1);
     Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
@@ -319,7 +312,6 @@ void setup()
 
   parser.registerCommand("setdac", "u", &cmd_setdac);
   parser.registerCommand("debug", "si", &cmd_debug);
-  char response[MyCommandParser::MAX_RESPONSE_SIZE];
 
   // define pin modes
   pinMode(KEY_LOAD, OUTPUT);
@@ -348,15 +340,15 @@ void loop()
   currentMillis2 = millis();
   if (currentMillis2 - startMillis2 >= period2) // test whether the period has elapsed
   {
-    unsigned int A1 = analogRead(AIN1);
-    float volt = (float)A1 / 4095 * 2.5;
-    String cstr = String(volt, 2);
-    cstr = "Ain1 = " + cstr + " V";
-    char buf[cstr.length() + 1];
-    // string to char array, length should increase 1 for null termination
-    cstr.toCharArray(buf, cstr.length() + 1);
-    // send udp could be length of 4
-    Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
+//    unsigned int A1 = analogRead(AIN1);
+//    float volt = (float)A1 / 4095 * 2.5;
+//    cstr = String(volt, 2);
+//    cstr = "Ain1 = " + cstr + " V";
+//    buf[cstr.length() + 1];
+//    // string to char array, length should increase 1 for null termination
+//    cstr.toCharArray(buf, cstr.length() + 1);
+//    // send udp could be length of 4
+//    Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
 
     startMillis2 = currentMillis2; // IMPORTANT to save the start time of the current LED state.
   }
