@@ -27,7 +27,7 @@ const char *host = "esp32";
 const char *ssid = "test";
 const char *password = "12345678";
 Adafruit_MCP4725 dac;
-unsigned int dac_val = 2048;
+int dac_val = 2048;
 byte key_val = 72; // 01001000
 // 2hz detect rate for keypad
 unsigned long startMillis; // some global variables available anywhere in the program
@@ -53,6 +53,7 @@ bool GPS_OK = false;
 bool debug_sm = false;
 bool debug_keypad = false;
 bool debug_ota = false;
+bool debug_adccal = false;
 
 String cstr;
 char buf[50];
@@ -321,6 +322,10 @@ void cmd_debug(MyCommandParser::Argument *args, char *response)
       debug_ota = true;
       ota_start();
     }
+    if (arg0 == "adc_cal")
+    {
+      debug_adccal = true;
+    }
   }
   else
   {
@@ -332,6 +337,10 @@ void cmd_debug(MyCommandParser::Argument *args, char *response)
     {
       debug_ota = false;
       ota_stop();
+    }
+    if (arg0 == "adc_cal")
+    {
+      debug_adccal = false;
     }
   }
 }
@@ -490,6 +499,51 @@ void pass_thru()
     // }
   }
 }
+
+void adc_cal()
+{
+  unsigned int avg = 10;
+  unsigned int A1 = 0;
+  unsigned int sum = 0;
+  Serial.println("start ADC calibration...");
+  for (dac_val = 0; dac_val <= 4095; dac_val++)
+  {
+    dac.setVoltage(dac_val, false); // 0.76V/5V*(2^12-1)=622
+    delay(1);
+    sum = 0;
+    for (int index = 0; index < avg; index++)
+    {
+      A1 = analogRead(AIN1);
+      sum = sum + A1;
+    }
+
+    Serial.print("DAC = ");
+    Serial.print(dac_val, DEC);
+    Serial.print("\t");
+    Serial.print("ADC = ");
+    Serial.print(sum, DEC);
+    Serial.println();
+  }
+  for (dac_val = 4095; dac_val >= 0; dac_val--)
+  {
+    dac.setVoltage(dac_val, false); // 0.76V/5V*(2^12-1)=622
+    delay(1);
+    sum = 0;
+    for (int index = 0; index < avg; index++)
+    {
+      A1 = analogRead(AIN1);
+      sum = sum + A1;
+    }
+
+    Serial.print("DAC = ");
+    Serial.print(dac_val, DEC);
+    Serial.print("\t");
+    Serial.print("ADC = ");
+    Serial.print(sum, DEC);
+    Serial.println();
+  }
+}
+
 void setup()
 {
   // put your setup code here, to run once:
@@ -528,8 +582,15 @@ void loop()
   }
   else
   {
-    if (state_cc != 3)
-      pass_thru();
+    if (debug_adccal == true)
+    {
+      adc_cal();
+    }
+    else
+    {
+      if (state_cc != 3)
+        pass_thru();
+    }
   }
   currentMillis = millis();                  // get the current "time" (actually the number of milliseconds since the program started)
   if (currentMillis - startMillis >= period) // test whether the period has elapsed
