@@ -25,11 +25,13 @@ const char *ssid = "test";
 const char *password = "12345678";
 Adafruit_MCP4725 dac;
 unsigned int dac_val = 2048;
-byte key_val = 72;         // 01001000
+byte key_val = 72; // 01001000
+// 2hz detect rate for keypad
 unsigned long startMillis; // some global variables available anywhere in the program
 unsigned long currentMillis;
-const unsigned long period = 400; // the value is a number of milliseconds
-unsigned long startMillis2;       // some global variables available anywhere in the program
+const unsigned long period = 500; // the value is a number of milliseconds
+
+unsigned long startMillis2; // some global variables available anywhere in the program
 unsigned long currentMillis2;
 const unsigned long period2 = 1000; // the value is a number of milliseconds
 
@@ -57,42 +59,42 @@ void SM_cc()
   state_prev_cc = state_cc;
   switch (state_cc)
   {
-    case 0: // INIT state
+  case 0: // INIT state
+    state_cc = 1;
+    break;
+
+  case 1: // pass thru state
+    if (key_cc && GPS_OK)
+    {
+      state_cc = 2;
+    }
+    break;
+
+  case 2: // pre_cruise state
+    if (key_set && GPS_OK)
+    {
+      state_cc = 3;
+    }
+    if (key_res && GPS_OK && set_speed != 0)
+    {
+      state_cc = 3;
+    }
+    if (GPS_OK == false || key_cc == true)
+    {
       state_cc = 1;
-      break;
+    }
+    break;
 
-    case 1: // pass thru state
-      if (key_cc && GPS_OK)
-      {
-        state_cc = 2;
-      }
-      break;
-
-    case 2: // pre_cruise state
-      if (key_set && GPS_OK)
-      {
-        state_cc = 3;
-      }
-      if (key_res && GPS_OK && set_speed != 0)
-      {
-        state_cc = 3;
-      }
-      if (GPS_OK == false || key_cc == true)
-      {
-        state_cc = 1;
-      }
-      break;
-
-    case 3: // cruising state
-      if (GPS_OK == false)
-      {
-        state_cc = 1;
-      }
-      if (key_cancel)
-      {
-        state_cc = 2;
-      }
-      break;
+  case 3: // cruising state
+    if (GPS_OK == false)
+    {
+      state_cc = 1;
+    }
+    if (key_cancel)
+    {
+      state_cc = 2;
+    }
+    break;
   }
 }
 
@@ -158,12 +160,19 @@ void cmd_debug(MyCommandParser::Argument *args, char *response)
   int arg1;
   arg0 = args[0].asString;
   arg1 = args[1].asInt64;
-  if (arg1 != 0) {
-    if (arg0 == "SM")debug_sm = true;
-    if (arg0 == "keyp")debug_keypad = true;
-  } else {
-    if (arg0 == "SM")debug_sm = false;
-    if (arg0 == "keyp")debug_keypad = false;
+  if (arg1 != 0)
+  {
+    if (arg0 == "SM")
+      debug_sm = true;
+    if (arg0 == "keyp")
+      debug_keypad = true;
+  }
+  else
+  {
+    if (arg0 == "SM")
+      debug_sm = false;
+    if (arg0 == "keyp")
+      debug_keypad = false;
   }
 }
 
@@ -216,7 +225,8 @@ byte shiftIn(int myDataPin, int myClockPin)
   return myDataIn;
 }
 
-void key_pressed_detect() {
+void key_pressed_detect()
+{
   digitalWrite(KEY_LOAD, 1);
   // set it to 1 to collect parallel data, wait
   delayMicroseconds(20);
@@ -242,41 +252,45 @@ void key_pressed_detect() {
   // bit 5, 32, select, key_cc
   // bit 6, 64, A, key_cancel
   // bit 7, 128, B, key_res
-  switch (onehot_key) {
-    case 32: // cruise
-      key_cc = true;
-      break;
-    case 64: // cancel
-      key_cancel = true;
-      break;
-    case 16: // set
-      key_set = true;
-      break;
-    case 128: // restore
-      key_res = true;
-      break;
-    case 8: // increase
-      key_inc = true;
-      break;
-    case 4: // decrease
-      key_dec = true;
-      break;
+  switch (onehot_key)
+  {
+  case 32: // cruise
+    key_cc = true;
+    break;
+  case 64: // cancel
+    key_cancel = true;
+    break;
+  case 16: // set
+    key_set = true;
+    break;
+  case 128: // restore
+    key_res = true;
+    break;
+  case 8: // increase
+    key_inc = true;
+    break;
+  case 4: // decrease
+    key_dec = true;
+    break;
   }
 }
 
-
-
-void debug_info() {
-  if (debug_sm == true) {
+void debug_info()
+{
+  if (debug_sm == true)
+  {
     cstr = String(state_cc);
     cstr = "state_cc = " + cstr;
 
     // string to char array, length should increase 1 for null termination
     cstr.toCharArray(buf, cstr.length() + 1);
     Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
-    if (key_cc == true) {
+    if (key_cc == true)
+    {
       cstr = "key_cc = 1";
-    } else {
+    }
+    else
+    {
       cstr = "key_cc = 0";
     }
 
@@ -284,7 +298,8 @@ void debug_info() {
     cstr.toCharArray(buf, cstr.length() + 1);
     Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
   }
-  if (debug_keypad == true) {
+  if (debug_keypad == true)
+  {
     cstr = String(key_val, BIN);
     cstr = "key val = " + cstr;
 
@@ -294,6 +309,27 @@ void debug_info() {
   }
 }
 
+void pass_thru()
+{
+  unsigned int A1 = analogRead(AIN1);
+  unsigned int A2 = analogRead(AIN2);
+  float ratio = float(A1) / float(A2);
+  if (ratio > 1.05 || ratio < 0.95)
+  {
+    // beep(1000, 2);
+    dac.setVoltage(622, false); // 0.76V/5V*(2^12-1)=622
+  }
+  else
+  {
+    dac.setVoltage(A1 * 2, false);
+    // unsigned int Ao = analogRead(Aout1);
+    // ratio = float(Ao) / float(A1);
+    // if (ratio > 1.05 || ratio < 0.95)
+    // {
+    //   beep(500, 2);
+    // }
+  }
+}
 void setup()
 {
   // put your setup code here, to run once:
@@ -308,7 +344,7 @@ void setup()
 
   Wire.begin(SDA, SCL);
   dac.begin(0x60);
-  dac.setVoltage(2048, false);
+  dac.setVoltage(622, false); // 0.76V/5V*(2^12-1)=622
 
   parser.registerCommand("setdac", "u", &cmd_setdac);
   parser.registerCommand("debug", "si", &cmd_debug);
@@ -326,10 +362,12 @@ void setup()
 
 void loop()
 {
+  if (state_cc != 3)
+    pass_thru();
   currentMillis = millis();                  // get the current "time" (actually the number of milliseconds since the program started)
   if (currentMillis - startMillis >= period) // test whether the period has elapsed
   {
-    GPS_OK = true;
+    // GPS_OK = true;
     key_pressed_detect();
     SM_cc();
     debug_info();
