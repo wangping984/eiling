@@ -543,12 +543,15 @@ void adc_cal()
     Serial.println();
   }
 }
+void GPS_init()
+{
+}
 
 void setup()
 {
   // put your setup code here, to run once:
 
-  // set the resolution to 12 bits (0-4096)
+  // set the resolution to 12 bits (0-4095)
   analogReadResolution(12);
   wifi_init();
   while (!Udp.listen(UdpPort)) //等待udp监听设置成功
@@ -569,6 +572,8 @@ void setup()
   pinMode(KEY_DAT, INPUT);
   digitalWrite(KEY_LOAD, 1);
   digitalWrite(KEY_CLK, 0);
+
+  GPS_init();
 
   startMillis = millis();  // initial start time
   startMillis2 = millis(); // initial start time
