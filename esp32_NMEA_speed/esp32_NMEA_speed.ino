@@ -2,9 +2,9 @@
 
 #define GPS_TX 12
 #define GPS_RX 18
-#define GPS_UART Serial1
-
-// Adafruit_GPS GPS(&Serial1);
+#define GPSSerial Serial1
+// Connect to the GPS on the hardware port
+Adafruit_GPS GPS(&GPSSerial);
 
 void setup()
 {
@@ -17,7 +17,15 @@ void setup()
 
   Serial.println("Goodnight moon!");
 
-  GPS_UART.begin(9600, SERIAL_8N1, GPS_TX, GPS_RX);
+  GPSSerial.begin(9600, SERIAL_8N1, GPS_TX, GPS_RX);
+  //   set GPS 115200 baud rate
+  byte message[] = {0x24, 0x50, 0x43, 0x41, 0x53, 0x30, 0x31, 0x2C, 0x35, 0x2A, 0x31, 0x39, 0x0D, 0x0A};
+  GPSSerial.write(message, sizeof(message));
+  GPSSerial.flush();
+  GPSSerial.begin(115200, SERIAL_8N1, GPS_TX, GPS_RX);
+  // set GPS 5Hz update rate
+  byte message0[] = {0x24, 0x50, 0x43, 0x41, 0x53, 0x30, 0x32, 0x2C, 0x32, 0x30, 0x30, 0x2A, 0x31, 0x44, 0x0D, 0x0A};
+  GPSSerial.write(message0, sizeof(message0));
 
   // // These lines configure the GPS Module
   // GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA); // Sets output to only RMC and GGA sentences
@@ -26,8 +34,8 @@ void setup()
 
 void loop() // run over and over
 {
-  if (GPS_UART.available())
-    Serial.write(GPS_UART.read());
+  if (GPSSerial.available())
+    Serial.write(GPSSerial.read());
 
   // // Now we will start our GPS module, parse (break into parts) the Last NMEA sentence
   // GPS.parse(GPS.lastNMEA()); // This is going to parse the last NMEA sentence the Arduino has received, breaking it down into its constituent parts.
