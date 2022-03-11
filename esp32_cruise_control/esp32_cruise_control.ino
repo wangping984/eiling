@@ -519,7 +519,7 @@ void adc_cal()
 
     Serial.print("DAC = ");
     Serial.print(dac_val, DEC);
-    Serial.print("\t");
+    Serial.print(" ");
     Serial.print("ADC = ");
     Serial.print(sum, DEC);
     Serial.println();
@@ -537,7 +537,7 @@ void adc_cal()
 
     Serial.print("DAC = ");
     Serial.print(dac_val, DEC);
-    Serial.print("\t");
+    Serial.print(" ");
     Serial.print("ADC = ");
     Serial.print(sum, DEC);
     Serial.println();
