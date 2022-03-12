@@ -490,7 +490,7 @@ void pass_thru()
   }
   else
   {
-    dac.setVoltage(A1 * 2, false);
+    dac.setVoltage((unsigned int)(float(A1)*1.122+10.8), false);
     // unsigned int Ao = analogRead(Aout1);
     // ratio = float(Ao) / float(A1);
     // if (ratio > 1.05 || ratio < 0.95)
