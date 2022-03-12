@@ -9,6 +9,7 @@
 #include <CommandParser.h>
 #include <WebServer.h>
 #include <Update.h>
+#include <Adafruit_GPS.h>
 
 // all of the template arguments below are optional, but it is useful to adjust them to save memory (by lowering the limits) or allow larger inputs (by increasing the limits)
 // limit number of commands to at most 5
@@ -29,18 +30,16 @@ const char *password = "12345678";
 Adafruit_MCP4725 dac;
 int dac_val = 2048;
 byte key_val = 72; // 01001000
-// 2hz detect rate for keypad
-unsigned long startMillis; // some global variables available anywhere in the program
-unsigned long currentMillis;
-const unsigned long period = 500; // the value is a number of milliseconds
 
-unsigned long startMillis2; // some global variables available anywhere in the program
-unsigned long currentMillis2;
-const unsigned long period2 = 1000; // the value is a number of milliseconds
+// 5Hz for GPS update rate [0]
+// 2Hz detect rate for keypad [1]
+unsigned long startMillis[3]; // some global variables available anywhere in the program
+unsigned long currentMillis[3];
+const unsigned long period[3] = {200, 500, 1000};
 
 int state_cc = 0;
 int state_prev_cc = 0;
-byte set_speed = 0;
+unsigned int speed_set = 0;
 
 bool key_cc = false;
 bool key_cancel = false;
@@ -48,18 +47,25 @@ bool key_set = false;
 bool key_res = false;
 bool key_inc = false;
 bool key_dec = false;
-bool GPS_OK = false;
+bool GPS_fixed = false;
 
 bool debug_sm = false;
 bool debug_keypad = false;
 bool debug_ota = false;
 bool debug_adccal = false;
+bool debug_gps = false;
 
 String cstr;
 char buf[50];
 char response[64];
 
 WebServer server(80);
+
+#define GPSSerial Serial1
+// Connect to the GPS on the hardware port
+Adafruit_GPS GPS(&GPSSerial);
+
+unsigned int speed_cur = 0;
 
 /*
  * Login page
@@ -158,29 +164,29 @@ void SM_cc()
     break;
 
   case 1: // pass thru state
-    if (key_cc && GPS_OK)
+    if (key_cc && GPS_fixed)
     {
       state_cc = 2;
     }
     break;
 
   case 2: // pre_cruise state
-    if (key_set && GPS_OK)
+    if (key_set && GPS_fixed)
     {
       state_cc = 3;
     }
-    if (key_res && GPS_OK && set_speed != 0)
+    if (key_res && GPS_fixed && speed_set != 0)
     {
       state_cc = 3;
     }
-    if (GPS_OK == false || key_cc == true)
+    if (GPS_fixed == false || key_cc == true)
     {
       state_cc = 1;
     }
     break;
 
   case 3: // cruising state
-    if (GPS_OK == false)
+    if (GPS_fixed == false)
     {
       state_cc = 1;
     }
@@ -326,6 +332,10 @@ void cmd_debug(MyCommandParser::Argument *args, char *response)
     {
       debug_adccal = true;
     }
+    if (arg0 == "gps")
+    {
+      debug_gps = true;
+    }
   }
   else
   {
@@ -341,6 +351,10 @@ void cmd_debug(MyCommandParser::Argument *args, char *response)
     if (arg0 == "adc_cal")
     {
       debug_adccal = false;
+    }
+    if (arg0 == "gps")
+    {
+      debug_gps = false;
     }
   }
 }
@@ -476,6 +490,64 @@ void debug_info()
     cstr.toCharArray(buf, cstr.length() + 1);
     Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
   }
+  if (debug_gps == true)
+  {
+    Serial.print("\nTime: ");
+    if (GPS.hour < 10)
+    {
+      Serial.print('0');
+    }
+    Serial.print(GPS.hour, DEC);
+    Serial.print(':');
+    if (GPS.minute < 10)
+    {
+      Serial.print('0');
+    }
+    Serial.print(GPS.minute, DEC);
+    Serial.print(':');
+    if (GPS.seconds < 10)
+    {
+      Serial.print('0');
+    }
+    Serial.print(GPS.seconds, DEC);
+    Serial.print('.');
+    if (GPS.milliseconds < 10)
+    {
+      Serial.print("00");
+    }
+    else if (GPS.milliseconds > 9 && GPS.milliseconds < 100)
+    {
+      Serial.print("0");
+    }
+    Serial.println(GPS.milliseconds);
+    Serial.print("Date: ");
+    Serial.print(GPS.day, DEC);
+    Serial.print('/');
+    Serial.print(GPS.month, DEC);
+    Serial.print("/20");
+    Serial.println(GPS.year, DEC);
+    Serial.print("Fix: ");
+    Serial.print((int)GPS.fix);
+    Serial.print(" quality: ");
+    Serial.println((int)GPS.fixquality);
+    if (GPS.fix)
+    {
+      Serial.print("Location: ");
+      Serial.print(GPS.latitude, 4);
+      Serial.print(GPS.lat);
+      Serial.print(", ");
+      Serial.print(GPS.longitude, 4);
+      Serial.println(GPS.lon);
+      Serial.print("Speed (knots): ");
+      Serial.println(GPS.speed);
+      Serial.print("Angle: ");
+      Serial.println(GPS.angle);
+      Serial.print("Altitude: ");
+      Serial.println(GPS.altitude);
+      Serial.print("Satellites: ");
+      Serial.println((int)GPS.satellites);
+    }
+  }
 }
 
 void pass_thru()
@@ -490,7 +562,7 @@ void pass_thru()
   }
   else
   {
-    dac.setVoltage((unsigned int)(float(A1)*1.122+10.8), false);
+    dac.setVoltage((unsigned int)(float(A1) * 1.122 + 10.8), false);
     // unsigned int Ao = analogRead(Aout1);
     // ratio = float(Ao) / float(A1);
     // if (ratio > 1.05 || ratio < 0.95)
@@ -545,6 +617,59 @@ void adc_cal()
 }
 void GPS_init()
 {
+  GPSSerial.begin(9600, SERIAL_8N1, GPS_TX, GPS_RX);
+  //   set GPS 115200 baud rate
+  byte message[] = {0x24, 0x50, 0x43, 0x41, 0x53, 0x30, 0x31, 0x2C, 0x35, 0x2A, 0x31, 0x39, 0x0D, 0x0A};
+  GPSSerial.write(message, sizeof(message));
+  GPSSerial.flush();
+  GPSSerial.begin(115200, SERIAL_8N1, GPS_TX, GPS_RX);
+  // set GPS 5Hz update rate
+  byte message0[] = {0x24, 0x50, 0x43, 0x41, 0x53, 0x30, 0x32, 0x2C, 0x32, 0x30, 0x30, 0x2A, 0x31, 0x44, 0x0D, 0x0A};
+  GPSSerial.write(message0, sizeof(message0));
+
+  //   关闭GLL
+  // 0x24, 0x50, 0x43, 0x41, 0x53, 0x30, 0x33, 0x2C, 0x2C, 0x30, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2A, 0x33, 0x32, 0x0D, 0x0A
+  // 关闭GSA
+  // 0x24, 0x50, 0x43, 0x41, 0x53, 0x30, 0x33, 0x2C, 0x2C, 0x2C, 0x30, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2A, 0x33, 0x32, 0x0D, 0x0A
+  // 关闭GSV
+  // 0x24, 0x50, 0x43, 0x41, 0x53, 0x30, 0x33, 0x2C, 0x2C, 0x2C, 0x2C, 0x30, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2A, 0x33, 0x32, 0x0D, 0x0A
+  // 关闭VGT
+  // 0x24, 0x50, 0x43, 0x41, 0x53, 0x30, 0x33, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x30, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2A, 0x33, 0x32, 0x0D, 0x0A
+  // 关闭ZDA
+  // 0x24, 0x50, 0x43, 0x41, 0x53, 0x30, 0x33, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x30, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2A, 0x33, 0x32, 0x0D, 0x0A
+  // 关闭TXT
+  // 0x24, 0x50, 0x43, 0x41, 0x53, 0x30, 0x33, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x30, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2A, 0x33, 0x32, 0x0D, 0x0A
+  byte message1[] = {0x24, 0x50, 0x43, 0x41, 0x53, 0x30, 0x33, 0x2C, 0x2C, 0x30, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2A, 0x33, 0x32, 0x0D, 0x0A};
+  GPSSerial.write(message1, sizeof(message1));
+  byte message2[] = {0x24, 0x50, 0x43, 0x41, 0x53, 0x30, 0x33, 0x2C, 0x2C, 0x2C, 0x30, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2A, 0x33, 0x32, 0x0D, 0x0A};
+  GPSSerial.write(message2, sizeof(message2));
+  byte message3[] = {0x24, 0x50, 0x43, 0x41, 0x53, 0x30, 0x33, 0x2C, 0x2C, 0x2C, 0x2C, 0x30, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2A, 0x33, 0x32, 0x0D, 0x0A};
+  GPSSerial.write(message3, sizeof(message3));
+  byte message4[] = {0x24, 0x50, 0x43, 0x41, 0x53, 0x30, 0x33, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x30, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2A, 0x33, 0x32, 0x0D, 0x0A};
+  GPSSerial.write(message4, sizeof(message4));
+  byte message5[] = {0x24, 0x50, 0x43, 0x41, 0x53, 0x30, 0x33, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x30, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2A, 0x33, 0x32, 0x0D, 0x0A};
+  GPSSerial.write(message5, sizeof(message5));
+  byte message6[] = {0x24, 0x50, 0x43, 0x41, 0x53, 0x30, 0x33, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x30, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2A, 0x33, 0x32, 0x0D, 0x0A};
+  GPSSerial.write(message6, sizeof(message6));
+}
+
+void GPS_parse()
+{
+  GPS.read();
+  if (GPS.newNMEAreceived())
+  {
+    // a tricky thing here is if we print the NMEA sentence, or data
+    // we end up not listening and catching other sentences!
+    // so be very wary if using OUTPUT_ALLDATA and trying to print out data
+    Serial.print(GPS.lastNMEA()); // this also sets the newNMEAreceived() flag to false
+    if (!GPS.parse(GPS.lastNMEA())) // this also sets the newNMEAreceived() flag to false
+      return;                       // we can fail to parse a sentence in which case we should just wait for another
+  }
+  if (GPS.fix)
+  {
+    GPS_fixed = true;
+    speed_cur = (unsigned int)GPS.speed;
+  }
 }
 
 void setup()
@@ -575,8 +700,8 @@ void setup()
 
   GPS_init();
 
-  startMillis = millis();  // initial start time
-  startMillis2 = millis(); // initial start time
+  startMillis[0] = millis(); // initial start time
+  startMillis[1] = millis(); // initial start time
 }
 
 void loop()
@@ -591,36 +716,33 @@ void loop()
     {
       adc_cal();
     }
+    else if (debug_gps == true)
+    {
+    }
     else
     {
       if (state_cc != 3)
         pass_thru();
     }
   }
-  currentMillis = millis();                  // get the current "time" (actually the number of milliseconds since the program started)
-  if (currentMillis - startMillis >= period) // test whether the period has elapsed
+
+  // [0] for GPS update rate
+  currentMillis[0] = millis();                        // get the current "time" (actually the number of milliseconds since the program started)
+  if (currentMillis[0] - startMillis[0] >= period[0]) // test whether the period has elapsed
   {
-    // GPS_OK = true;
+    GPS_parse();
+    debug_info();
+
+    startMillis[0] = currentMillis[0]; // IMPORTANT to save the start time of the current LED state.
+  }
+  // [1] for keypad detect rate
+  currentMillis[1] = millis();
+  if (currentMillis[1] - startMillis[1] >= period[1]) // test whether the period has elapsed
+  {
     key_pressed_detect();
     SM_cc();
     debug_info();
 
-    startMillis = currentMillis; // IMPORTANT to save the start time of the current LED state.
-  }
-
-  currentMillis2 = millis();
-  if (currentMillis2 - startMillis2 >= period2) // test whether the period has elapsed
-  {
-    //    unsigned int A1 = analogRead(AIN1);
-    //    float volt = (float)A1 / 4095 * 2.5;
-    //    cstr = String(volt, 2);
-    //    cstr = "Ain1 = " + cstr + " V";
-    //    buf[cstr.length() + 1];
-    //    // string to char array, length should increase 1 for null termination
-    //    cstr.toCharArray(buf, cstr.length() + 1);
-    //    // send udp could be length of 4
-    //    Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
-
-    startMillis2 = currentMillis2; // IMPORTANT to save the start time of the current LED state.
+    startMillis[1] = currentMillis[1]; // IMPORTANT to save the start time of the current LED state.
   }
 }
