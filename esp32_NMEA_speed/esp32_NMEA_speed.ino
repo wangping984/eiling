@@ -7,7 +7,7 @@
 Adafruit_GPS GPS(&GPSSerial);
 #define GPSECHO false
 uint32_t timer = millis();
-
+uint32_t timer1 = millis();
 void setup()
 {
   // Open serial communications and wait for port to open:
@@ -57,21 +57,32 @@ void setup()
 
 void loop() // run over and over
 {
-  // read data from the GPS in the 'main loop'
-  char c = GPS.read();
-  // if you want to debug, this is a good time to do it!
-  if (GPSECHO)
-    if (c)
-      Serial.print(c);
-  // if a sentence is received, we can check the checksum, parse it...
-  if (GPS.newNMEAreceived())
+  if (millis() - timer1 >= 0)
   {
-    // a tricky thing here is if we print the NMEA sentence, or data
-    // we end up not listening and catching other sentences!
-    // so be very wary if using OUTPUT_ALLDATA and trying to print out data
-    //    Serial.print(GPS.lastNMEA()); // this also sets the newNMEAreceived() flag to false
-    if (!GPS.parse(GPS.lastNMEA())) // this also sets the newNMEAreceived() flag to false
-      return;                       // we can fail to parse a sentence in which case we should just wait for another
+
+    timer1 = millis(); // reset the timer
+
+    // read data from the GPS in the 'main loop'
+    char c = GPS.read();
+    // if you want to debug, this is a good time to do it!
+    if (GPSECHO)
+      if (c)
+        Serial.print(c);
+    // if a sentence is received, we can check the checksum, parse it...
+    if (GPS.newNMEAreceived())
+    {
+      // a tricky thing here is if we print the NMEA sentence, or data
+      // we end up not listening and catching other sentences!
+      // so be very wary if using OUTPUT_ALLDATA and trying to print out data
+      Serial.print(GPS.lastNMEA()); // this also sets the newNMEAreceived() flag to false
+      if (!GPS.parse(GPS.lastNMEA())) // this also sets the newNMEAreceived() flag to false
+        return;                       // we can fail to parse a sentence in which case we should just wait for another
+      Serial.print("Time to parse: ");
+      Serial.print(millis()-timer1,DEC);
+      Serial.print("         millis: ");
+      Serial.print(millis(),DEC);
+      Serial.print("  \n");
+    }
   }
 
   // approximately every 2 seconds or so, print out the current stats
