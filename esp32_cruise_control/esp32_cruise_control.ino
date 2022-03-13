@@ -108,6 +108,10 @@ Adafruit_GPS GPS(&GPSSerial);
 
 unsigned int speed_cur = 0;
 
+char terminateChar = '\n';       // 建立终止字符
+const int bufferLength = 100;    // 定义缓存大小为10个字节
+char serialBuffer[bufferLength]; // 建立字符数组用于缓存
+
 /*
  * Login page
  */
@@ -710,19 +714,37 @@ void GPS_init()
   GPSSerial.write(message5, sizeof(message5));
   byte message6[] = {0x24, 0x50, 0x43, 0x41, 0x53, 0x30, 0x33, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x30, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2A, 0x33, 0x32, 0x0D, 0x0A};
   GPSSerial.write(message6, sizeof(message6));
+  //   关闭GGA
+  // 0x24, 0x50, 0x43, 0x41, 0x53, 0x30, 0x33, 0x2C, 0x30, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2A, 0x33, 0x32, 0x0D, 0x0A
+  //  byte message7[] = {0x24, 0x50, 0x43, 0x41, 0x53, 0x30, 0x33, 0x2C, 0x30, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2A, 0x33, 0x32, 0x0D, 0x0A};
+  //  GPSSerial.write(message7, sizeof(message7));
+
+  //  Serial1.setRxBufferSize(1024);
 }
 
 void GPS_parse()
 {
-  GPS.read();
-  if (GPS.newNMEAreceived())
+  if (GPSSerial.available())
   {
-    // a tricky thing here is if we print the NMEA sentence, or data
-    // we end up not listening and catching other sentences!
-    // so be very wary if using OUTPUT_ALLDATA and trying to print out data
-    Serial.print(GPS.lastNMEA()); // this also sets the newNMEAreceived() flag to false
-    if (!GPS.parse(GPS.lastNMEA())) // this also sets the newNMEAreceived() flag to false
-      return;                       // we can fail to parse a sentence in which case we should just wait for another
+    if (debug_gps == true)
+    {
+      Serial.print(millis(), DEC);
+      Serial.print("   start availabe: ");
+      Serial.print(GPSSerial.available());
+      Serial.print("    ");
+    }
+
+    GPSSerial.readBytesUntil(terminateChar, serialBuffer, bufferLength); // 将接收到的信息使用read读取
+    if (debug_gps == true)
+    {
+      for (int i = 0; i < bufferLength; i++)
+      {                                // 然后通过串口监视器输出readBytesUntil
+        Serial.print(serialBuffer[i]); // 函数所读取的信息
+      }
+      Serial.print("\n");
+    }
+
+    GPS.parse(serialBuffer);
   }
   if (GPS.fix)
   {
@@ -775,33 +797,27 @@ void loop()
     {
       adc_cal();
     }
-    else if (debug_gps == true)
-    {
-    }
     else
     {
+      GPS_parse();
       if (state_cc != 3)
+      {
         pass_thru();
+      }
     }
   }
 
-  // [0] for GPS update rate
-  currentMillis[0] = millis();                        // get the current "time" (actually the number of milliseconds since the program started)
-  if (currentMillis[0] - startMillis[0] >= period[0]) // test whether the period has elapsed
+  // debug info update rate
+  if (millis() - startMillis[0] >= 1000) // test whether the period has elapsed
   {
-    GPS_parse();
+    startMillis[0] = millis();
     debug_info();
-
-    startMillis[0] = currentMillis[0]; // IMPORTANT to save the start time of the current LED state.
   }
   // [1] for keypad detect rate
-  currentMillis[1] = millis();
-  if (currentMillis[1] - startMillis[1] >= period[1]) // test whether the period has elapsed
+  if (millis() - startMillis[1] >= period[1]) // test whether the period has elapsed
   {
+    startMillis[1] = millis();
     key_pressed_detect();
     SM_cc();
-    debug_info();
-
-    startMillis[1] = currentMillis[1]; // IMPORTANT to save the start time of the current LED state.
   }
 }
