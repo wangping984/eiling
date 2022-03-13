@@ -68,20 +68,40 @@ void setup()
 
 void loop() // run over and over
 {
-  if (millis() - timer1 >= 190)
+  if (millis() - timer1 >= 0)
   {
+    // timer1 = millis(); // reset the timer
+    
     if (GPSSerial.available())
     {
-      Serial.print("availabe: ");
+      Serial.print(millis(), DEC);
+      Serial.print("   start availabe: ");
       Serial.print(GPSSerial.available());
+      Serial.print("    ");
       GPSSerial.readBytesUntil(terminateChar, serialBuffer, bufferLength); // 将接收到的信息使用read读取
       for (int i = 0; i < bufferLength; i++)
       {                                // 然后通过串口监视器输出readBytesUntil
         Serial.print(serialBuffer[i]); // 函数所读取的信息
       }
+      Serial.print("\n");
+      GPS.parse(serialBuffer);
+    }
+    if (GPSSerial.available())
+    {
+      Serial.print(millis(), DEC);
+      Serial.print("         availabe: ");
+      Serial.print(GPSSerial.available());
+      Serial.print("    ");
+      GPSSerial.readBytesUntil(terminateChar, serialBuffer, bufferLength); // 将接收到的信息使用read读取
+      for (int i = 0; i < bufferLength; i++)
+      {                                // 然后通过串口监视器输出readBytesUntil
+        Serial.print(serialBuffer[i]); // 函数所读取的信息
+      }
+      Serial.print("\n");
+      GPS.parse(serialBuffer);
     }
 
-    timer1 = millis(); // reset the timer
+    
 
     // read data from the GPS in the 'main loop'
     //    char c = GPS.read();
