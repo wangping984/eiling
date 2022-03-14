@@ -311,7 +311,6 @@ void cmd_setdac(MyCommandParser::Argument *args, char *response)
   dac.setVoltage(dac_val, false);
   cstr = String(dac_val);
   cstr = "dac_val = " + cstr;
-  buf[cstr.length() + 1];
   // string to char array, length should increase 1 for null termination
   cstr.toCharArray(buf, cstr.length() + 1);
   // send udp could be length of 4
@@ -738,9 +737,26 @@ void GPS_parse()
     if (debug_gps == true)
     {
       Serial.print(millis(), DEC);
-      Serial.print("   start availabe: ");
+      Serial.print("   availabe: ");
       Serial.print(GPSSerial.available());
       Serial.print("    ");
+
+      cstr = String(millis());
+      // string to char array, length should increase 1 for null termination
+      cstr.toCharArray(buf, cstr.length() + 1);
+      // send udp could be length of 4
+      Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
+
+      cstr = "   availabe: ";
+      cstr.toCharArray(buf, cstr.length() + 1);
+      Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
+
+      cstr = String(GPSSerial.available());
+      cstr.toCharArray(buf, cstr.length() + 1);
+      Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
+      cstr = "    ";
+      cstr.toCharArray(buf, cstr.length() + 1);
+      Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
     }
 
     GPSSerial.readBytesUntil(terminateChar, serialBuffer, bufferLength); // 将接收到的信息使用read读取
@@ -749,8 +765,12 @@ void GPS_parse()
       for (int i = 0; i < bufferLength; i++)
       {                                // 然后通过串口监视器输出readBytesUntil
         Serial.print(serialBuffer[i]); // 函数所读取的信息
+        cstr[i] = serialBuffer[i];
       }
       Serial.print("\n");
+
+      cstr.toCharArray(buf, cstr.length() + 1);
+      Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
     }
 
     GPS.parse(serialBuffer);
