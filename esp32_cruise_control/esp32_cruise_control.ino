@@ -189,11 +189,11 @@ void cmd_debug(MyCommandParser::Argument *args, char *response)
   }
   if (arg0 == "ki")
   {
-    Kp = (double)arg1 / 100;
+    Ki = (double)arg1 / 100;
   }
   if (arg0 == "kd")
   {
-    Kp = (double)arg1 / 100;
+    Kd = (double)arg1 / 100;
   }
   if (arg1 != 0)
   {
