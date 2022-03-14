@@ -503,27 +503,27 @@ void key_pressed_detect()
   {
   case 32: // cruise
     key_cc = true;
-    EasyBuzzer.singleBeep(1000, 100);
+    EasyBuzzer.singleBeep(1000, 50);
     break;
   case 64: // cancel
     key_cancel = true;
-    EasyBuzzer.singleBeep(1000, 100);
+    EasyBuzzer.singleBeep(1000, 50);
     break;
   case 16: // set
     key_set = true;
-    EasyBuzzer.singleBeep(1000, 100);
+    EasyBuzzer.singleBeep(1000, 50);
     break;
   case 128: // restore
     key_res = true;
-    EasyBuzzer.singleBeep(1000, 100);
+    EasyBuzzer.singleBeep(1000, 50);
     break;
   case 8: // increase
     key_inc = true;
-    EasyBuzzer.singleBeep(1000, 100);
+    EasyBuzzer.singleBeep(1000, 50);
     break;
   case 4: // decrease
     key_dec = true;
-    EasyBuzzer.singleBeep(1000, 100);
+    EasyBuzzer.singleBeep(1000, 50);
     break;
   }
 }
@@ -767,7 +767,7 @@ void setup()
   // beep 0.1s when boot up
   pinMode(BUZZER, OUTPUT);
   digitalWrite(BUZZER, 1);
-  delay(100);
+  delay(50);
   digitalWrite(BUZZER, 0);
   // set the resolution to 12 bits (0-4095)
   analogReadResolution(12);
@@ -827,6 +827,7 @@ void loop()
   {
     startMillis[0] = millis();
     debug_info();
+    EasyBuzzer.stopBeep();
   }
   // [1] for keypad detect rate
   if (millis() - startMillis[1] >= period[1]) // test whether the period has elapsed
