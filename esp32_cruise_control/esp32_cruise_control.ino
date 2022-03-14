@@ -670,8 +670,6 @@ void setup()
 
 void loop()
 {
-  /* Always call this function in the loop for EasyBuzzer to work. */
-  EasyBuzzer.update();
 
   if (debug_ota == true)
   {
@@ -685,6 +683,9 @@ void loop()
     }
     else
     {
+      /* Always call this function in the loop for EasyBuzzer to work. */
+      EasyBuzzer.update();
+
       GPS_parse();
       if (state_cc != 3)
       {
@@ -695,21 +696,21 @@ void loop()
       {
         cruising_control();
       }
-    }
-  }
 
-  // debug info update rate
-  if (millis() - startMillis[0] >= 1000) // test whether the period has elapsed
-  {
-    startMillis[0] = millis();
-    debug_info();
-    EasyBuzzer.stopBeep();
-  }
-  // [1] for keypad detect rate
-  if (millis() - startMillis[1] >= period[1]) // test whether the period has elapsed
-  {
-    startMillis[1] = millis();
-    key_pressed_detect();
-    SM_cc();
+      // debug info update rate
+      if (millis() - startMillis[0] >= 1000) // test whether the period has elapsed
+      {
+        startMillis[0] = millis();
+        debug_info();
+        EasyBuzzer.stopBeep();
+      }
+      // [1] for keypad detect rate
+      if (millis() - startMillis[1] >= period[1]) // test whether the period has elapsed
+      {
+        startMillis[1] = millis();
+        key_pressed_detect();
+        SM_cc();
+      }
+    }
   }
 }
