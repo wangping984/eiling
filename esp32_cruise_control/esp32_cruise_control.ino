@@ -10,6 +10,7 @@
 #include <WebServer.h>
 #include <Update.h>
 #include <Adafruit_GPS.h>
+#include <EasyBuzzer.h>
 
 // all of the template arguments below are optional, but it is useful to adjust them to save memory (by lowering the limits) or allow larger inputs (by increasing the limits)
 // limit number of commands to at most 5
@@ -502,21 +503,27 @@ void key_pressed_detect()
   {
   case 32: // cruise
     key_cc = true;
+    EasyBuzzer.singleBeep(1000, 100);
     break;
   case 64: // cancel
     key_cancel = true;
+    EasyBuzzer.singleBeep(1000, 100);
     break;
   case 16: // set
     key_set = true;
+    EasyBuzzer.singleBeep(1000, 100);
     break;
   case 128: // restore
     key_res = true;
+    EasyBuzzer.singleBeep(1000, 100);
     break;
   case 8: // increase
     key_inc = true;
+    EasyBuzzer.singleBeep(1000, 100);
     break;
   case 4: // decrease
     key_dec = true;
+    EasyBuzzer.singleBeep(1000, 100);
     break;
   }
 }
@@ -756,7 +763,12 @@ void GPS_parse()
 void setup()
 {
   // put your setup code here, to run once:
-
+  EasyBuzzer.setPin(BUZZER);
+  // beep 0.1s when boot up
+  pinMode(BUZZER, OUTPUT);
+  digitalWrite(BUZZER, 1);
+  delay(100);
+  digitalWrite(BUZZER, 0);
   // set the resolution to 12 bits (0-4095)
   analogReadResolution(12);
   wifi_init();
@@ -787,6 +799,9 @@ void setup()
 
 void loop()
 {
+  /* Always call this function in the loop for EasyBuzzer to work. */
+  EasyBuzzer.update();
+
   if (debug_ota == true)
   {
     server.handleClient();
