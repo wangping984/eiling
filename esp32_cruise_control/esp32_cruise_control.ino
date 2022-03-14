@@ -10,11 +10,7 @@
 #include <WebServer.h>
 #include <Update.h>
 #include <Adafruit_GPS.h>
-<<<<<<< HEAD
-#include <ezBuzzer.h> // ezBuzzer library
-=======
 #include <EasyBuzzer.h>
->>>>>>> beep_on_key
 
 // all of the template arguments below are optional, but it is useful to adjust them to save memory (by lowering the limits) or allow larger inputs (by increasing the limits)
 // limit number of commands to at most 5
@@ -508,29 +504,6 @@ void key_pressed_detect()
   {
   case 32: // cruise
     key_cc = true;
-<<<<<<< HEAD
-    buzzer.beep(100);
-    break;
-  case 64: // cancel
-    key_cancel = true;
-    buzzer.beep(100);
-    break;
-  case 16: // set
-    key_set = true;
-    buzzer.beep(100);
-    break;
-  case 128: // restore
-    key_res = true;
-    buzzer.beep(100);
-    break;
-  case 8: // increase
-    key_inc = true;
-    buzzer.beep(100);
-    break;
-  case 4: // decrease
-    key_dec = true;
-    buzzer.beep(100);
-=======
     EasyBuzzer.singleBeep(1000, 50);
     break;
   case 64: // cancel
@@ -552,7 +525,6 @@ void key_pressed_detect()
   case 4: // decrease
     key_dec = true;
     EasyBuzzer.singleBeep(1000, 50);
->>>>>>> beep_on_key
     break;
   }
 }
@@ -813,18 +785,11 @@ void GPS_parse()
 void setup()
 {
   // put your setup code here, to run once:
-<<<<<<< HEAD
-  // beep 0.1s when boot up
-  pinMode(BUZZER, OUTPUT);
-  digitalWrite(BUZZER, 1);
-  delay(100);
-=======
   EasyBuzzer.setPin(BUZZER);
   // beep 0.1s when boot up
   pinMode(BUZZER, OUTPUT);
   digitalWrite(BUZZER, 1);
   delay(50);
->>>>>>> beep_on_key
   digitalWrite(BUZZER, 0);
   // set the resolution to 12 bits (0-4095)
   analogReadResolution(12);
@@ -856,12 +821,8 @@ void setup()
 
 void loop()
 {
-<<<<<<< HEAD
-  buzzer.loop(); // MUST call the buzzer.loop() function in loop()
-=======
   /* Always call this function in the loop for EasyBuzzer to work. */
   EasyBuzzer.update();
->>>>>>> beep_on_key
 
   if (debug_ota == true)
   {
