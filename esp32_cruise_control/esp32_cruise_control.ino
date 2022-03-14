@@ -55,6 +55,7 @@ bool debug_keypad = false;
 bool debug_ota = false;
 bool debug_adccal = false;
 bool debug_gps = false;
+bool debug_pid = false;
 
 String cstr;
 char buf[100];
@@ -201,6 +202,10 @@ void cmd_debug(MyCommandParser::Argument *args, char *response)
     {
       debug_gps = true;
     }
+    if (arg0 == "pid")
+    {
+      debug_pid = true;
+    }
   }
   else
   {
@@ -220,6 +225,10 @@ void cmd_debug(MyCommandParser::Argument *args, char *response)
     if (arg0 == "gps")
     {
       debug_gps = false;
+    }
+    if (arg0 == "pid")
+    {
+      debug_pid = false;
     }
   }
 }
@@ -358,6 +367,20 @@ void debug_info()
     cstr = "key val = " + cstr;
 
     // string to char array, length should increase 1 for null termination
+    cstr.toCharArray(buf, cstr.length() + 1);
+    Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
+  }
+  if (debug_pid == true)
+  {
+    Serial.print("\nPID debug: Kp = ");
+    Serial.print(Kp);
+    Serial.print("  Ki = ");
+    Serial.print(Ki);
+    Serial.print("  Kd = ");
+    Serial.print(Kd);
+    Serial.print("\n");
+
+    cstr = "\nPID debug: Kp = " + String(Kp, 2) + "  Ki = " + String(Ki, 2) + "  Kd = " + String(Kd, 2) + "\n";
     cstr.toCharArray(buf, cstr.length() + 1);
     Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
   }
