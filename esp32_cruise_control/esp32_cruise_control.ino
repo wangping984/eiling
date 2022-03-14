@@ -113,7 +113,7 @@ char terminateChar = '\n';       // 建立终止字符
 const int bufferLength = 100;    // 定义缓存大小为10个字节
 char serialBuffer[bufferLength]; // 建立字符数组用于缓存
 
-ezBuzzer buzzer(BUZZER_PIN); // create ezBuzzer object that attach to a pin;
+ezBuzzer buzzer(BUZZER); // create ezBuzzer object that attach to a pin;
 
 /*
  * Login page
