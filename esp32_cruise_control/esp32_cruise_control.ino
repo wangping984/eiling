@@ -10,6 +10,7 @@
 #include <WebServer.h>
 #include <Update.h>
 #include <Adafruit_GPS.h>
+#include <ezBuzzer.h> // ezBuzzer library
 
 // all of the template arguments below are optional, but it is useful to adjust them to save memory (by lowering the limits) or allow larger inputs (by increasing the limits)
 // limit number of commands to at most 5
@@ -111,6 +112,8 @@ unsigned int speed_cur = 0;
 char terminateChar = '\n';       // 建立终止字符
 const int bufferLength = 100;    // 定义缓存大小为10个字节
 char serialBuffer[bufferLength]; // 建立字符数组用于缓存
+
+ezBuzzer buzzer(BUZZER_PIN); // create ezBuzzer object that attach to a pin;
 
 /*
  * Login page
@@ -502,21 +505,27 @@ void key_pressed_detect()
   {
   case 32: // cruise
     key_cc = true;
+    buzzer.beep(100);
     break;
   case 64: // cancel
     key_cancel = true;
+    buzzer.beep(100);
     break;
   case 16: // set
     key_set = true;
+    buzzer.beep(100);
     break;
   case 128: // restore
     key_res = true;
+    buzzer.beep(100);
     break;
   case 8: // increase
     key_inc = true;
+    buzzer.beep(100);
     break;
   case 4: // decrease
     key_dec = true;
+    buzzer.beep(100);
     break;
   }
 }
@@ -756,7 +765,11 @@ void GPS_parse()
 void setup()
 {
   // put your setup code here, to run once:
-
+  // beep 0.1s when boot up
+  pinMode(BUZZER, OUTPUT);
+  digitalWrite(BUZZER, 1);
+  delay(100);
+  digitalWrite(BUZZER, 0);
   // set the resolution to 12 bits (0-4095)
   analogReadResolution(12);
   wifi_init();
@@ -787,6 +800,8 @@ void setup()
 
 void loop()
 {
+  buzzer.loop(); // MUST call the buzzer.loop() function in loop()
+
   if (debug_ota == true)
   {
     server.handleClient();
