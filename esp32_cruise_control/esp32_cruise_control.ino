@@ -183,6 +183,18 @@ void cmd_debug(MyCommandParser::Argument *args, char *response)
   int arg1;
   arg0 = args[0].asString;
   arg1 = args[1].asInt64;
+  if (arg0 == "kp")
+  {
+    Kp = (double)arg1 / 100;
+  }
+  if (arg0 == "ki")
+  {
+    Kp = (double)arg1 / 100;
+  }
+  if (arg0 == "kd")
+  {
+    Kp = (double)arg1 / 100;
+  }
   if (arg1 != 0)
   {
     if (arg0 == "SM")
