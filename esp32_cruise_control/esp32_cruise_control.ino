@@ -10,6 +10,7 @@
 #include <Adafruit_GPS.h>
 #include <EasyBuzzer.h>
 #include "ota.h"
+#include <PID_v1.h>
 
 // all of the template arguments below are optional, but it is useful to adjust them to save memory (by lowering the limits) or allow larger inputs (by increasing the limits)
 // limit number of commands to at most 5
@@ -39,7 +40,7 @@ const unsigned long period[3] = {200, 500, 1000};
 
 int state_cc = 0;
 int state_prev_cc = 0;
-unsigned int speed_set = 0;
+float speed_set = 0;
 
 bool key_cc = false;
 bool key_cancel = false;
@@ -62,11 +63,18 @@ char buf[100];
 // Connect to the GPS on the hardware port
 Adafruit_GPS GPS(&GPSSerial);
 
-unsigned int speed_cur = 0;
+float speed_cur = 0;
 
 char terminateChar = '\n';       // 建立终止字符
 const int bufferLength = 100;    // 定义缓存大小为10个字节
 char serialBuffer[bufferLength]; // 建立字符数组用于缓存
+
+// Define Variables we'll be connecting to
+double Setpoint, Input, Output;
+
+// Specify the links and initial tuning parameters
+double Kp = 2, Ki = 5, Kd = 1;
+PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
 
 void SM_cc()
 {
@@ -85,9 +93,10 @@ void SM_cc()
     break;
 
   case 2: // pre_cruise state
-    if (key_set && GPS_fixed)
+    if (key_set && GPS_fixed && speed_cur > 4)
     {
       state_cc = 3;
+      speed_set = speed_cur;
     }
     if (key_res && GPS_fixed && speed_set != 0)
     {
@@ -554,8 +563,36 @@ void GPS_parse()
   if (GPS.fix)
   {
     GPS_fixed = true;
-    speed_cur = (unsigned int)GPS.speed;
+    speed_cur = (GPS.speed) * 1.852; // knot to km/s
   }
+}
+
+void cruising_control()
+{
+  // set up PID loop,
+  // input parameters: speed current, speed set
+  // output parameters: dac voltage
+  Setpoint = (double)speed_set;
+  Input = (double)speed_cur;
+  // PID parameters could adjusted by debug command
+  myPID.SetTunings(Kp, Ki, Kd);
+  // turn the PID on
+  myPID.SetMode(AUTOMATIC);
+  myPID.Compute();
+  // Output;
+  dac.setVoltage((unsigned int)Output, false);
+}
+
+void PID_init()
+{
+  myPID.SetOutputLimits(622, 3200);
+  myPID.SetSampleTime(200); // 200ms PID update rate
+}
+
+void PID_off()
+{
+  // turn off PID control
+  myPID.SetMode(MANUAL);
 }
 
 void setup()
@@ -590,6 +627,7 @@ void setup()
   digitalWrite(KEY_CLK, 0);
 
   GPS_init();
+  PID_init();
 
   startMillis[0] = millis(); // initial start time
   startMillis[1] = millis(); // initial start time
@@ -615,7 +653,12 @@ void loop()
       GPS_parse();
       if (state_cc != 3)
       {
+        PID_off();
         pass_thru();
+      }
+      else // state_cc == 3, cruising
+      {
+        cruising_control();
       }
     }
   }
