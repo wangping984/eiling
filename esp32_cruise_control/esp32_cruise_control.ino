@@ -483,7 +483,8 @@ void pass_thru()
   unsigned int A1 = analogRead(AIN1);
   unsigned int A2 = analogRead(AIN2);
   float ratio = float(A1) / float(A2);
-  if (ratio > 1.2 || ratio < 0.8)
+  // if (ratio > 1.2 || ratio < 0.8)
+  if (false)
   {
     // beep(1000, 2);
     dac.setVoltage(622, false); // 0.76V/5V*(2^12-1)=622
