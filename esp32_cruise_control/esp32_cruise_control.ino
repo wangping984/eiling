@@ -395,10 +395,12 @@ void debug_info()
   {
     Serial.print("\nAD DA debug: Ain1 = ");
     Serial.print(analogRead(AIN1));
+    Serial.print("  Ain2 = ");
+    Serial.print(analogRead(AIN2));
     Serial.print("  Aout1 = ");
     Serial.print(analogRead(AOUT1));
 
-    cstr = "\nAD DA debug: Ain1 = " + String(analogRead(AIN1)) + "  Aout1 = " + String(analogRead(AOUT1));
+    cstr = "\nAD DA debug: Ain1 = " + String(analogRead(AIN1)) + "  Ain2 = " + String(analogRead(AIN2)) + "  Aout1 = " + String(analogRead(AOUT1));
     cstr.toCharArray(buf, cstr.length() + 1);
     Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
   }
@@ -481,14 +483,20 @@ void pass_thru()
   unsigned int A1 = analogRead(AIN1);
   unsigned int A2 = analogRead(AIN2);
   float ratio = float(A1) / float(A2);
-  if (ratio > 1.05 || ratio < 0.95)
+  if (ratio > 1.2 || ratio < 0.8)
   {
     // beep(1000, 2);
     dac.setVoltage(622, false); // 0.76V/5V*(2^12-1)=622
   }
   else
   {
-    dac.setVoltage((unsigned int)(float(A1) * 1.122 + 10.8), false);
+    float dacvolt = float(A1) * 1.122 + 10.8;
+    if (dacvolt > 3767)
+      dac.setVoltage(3767, false);
+    else if (dacvolt < 622)
+      dac.setVoltage(622, false);
+    else
+      dac.setVoltage((unsigned int)dacvolt, false);
     // unsigned int Ao = analogRead(Aout1);
     // ratio = float(Ao) / float(A1);
     // if (ratio > 1.05 || ratio < 0.95)
@@ -654,6 +662,8 @@ void setup()
 {
   // put your setup code here, to run once:
   pinMode(AOUT1, INPUT); // AOUT1 is pin on toECU header6 and pin on ESP ADin for monitor DAC output
+  pinMode(AIN1, INPUT);
+  pinMode(AIN2, INPUT);
   EasyBuzzer.setPin(BUZZER);
   // beep 0.1s when boot up
   pinMode(BUZZER, OUTPUT);
