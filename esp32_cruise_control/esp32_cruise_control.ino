@@ -33,10 +33,10 @@ int dac_val = 2048;
 byte key_val = 72; // 01001000
 
 // 5Hz for GPS update rate [0]
-// 2Hz detect rate for keypad [1]
+// 3.3Hz detect rate for keypad [1]
 unsigned long startMillis[3]; // some global variables available anywhere in the program
 unsigned long currentMillis[3];
-const unsigned long period[3] = {200, 500, 1000};
+const unsigned long period[3] = {200, 300, 1000};
 
 int state_cc = 0;
 int state_prev_cc = 0;
@@ -59,7 +59,7 @@ bool debug_adccal = false;
 bool debug_gps = false;
 bool debug_pid = false;
 bool debug_adda = false;
-bool debug_loop = false;
+bool debug_loop = true;
 
 String cstr;
 char buf[100];
@@ -78,7 +78,7 @@ char serialBuffer[bufferLength]; // 建立字符数组用于缓存
 double Setpoint, Input, Output;
 
 // Specify the links and initial tuning parameters
-double Kp = 200, Ki = 500, Kd = 100;
+double Kp = 100, Ki = 0, Kd = 0;
 PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
 
 void SM_cc()
@@ -708,14 +708,16 @@ void cruising_control()
   // output parameters: dac voltage
   Setpoint = (double)speed_set;
   Input = (double)speed_cur;
-  // PID parameters could adjusted by debug command
-  myPID.SetTunings(Kp, Ki, Kd);
   // turn the PID on
   myPID.SetMode(AUTOMATIC);
   myPID.Compute();
   // Output;
   dac.setVoltage((unsigned int)Output, false);
   pedal_down_dect();
+  if (key_inc == true)
+    speed_set = speed_set + 2;
+  if (key_dec == true)
+    speed_set = speed_set - 2;
 }
 
 void pedal_down_dect()
@@ -735,8 +737,10 @@ void pedal_down_dect()
 
 void PID_init()
 {
-  myPID.SetOutputLimits(622, 3200);
+  myPID.SetOutputLimits(622, 2400);
   myPID.SetSampleTime(200); // 200ms PID update rate
+  // PID parameters could adjusted by debug command
+  myPID.SetTunings(Kp, Ki, Kd);
 }
 
 void PID_off()
