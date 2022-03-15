@@ -99,10 +99,28 @@ void SM_cc()
     {
       state_cc = 3;
       speed_set = speed_cur;
+      EasyBuzzer.beep(
+          1000, // Frequency in hertz(HZ).
+          200,  // On Duration in milliseconds(ms).
+          200,  // Off Duration in milliseconds(ms).
+          1,    // The number of beeps per cycle.
+          0,    // Pause duration.
+          2     // The number of cycle.
+                // callback       // [Optional] Function to call when done.
+      );
     }
     if (key_res && GPS_fixed && speed_set != 0)
     {
       state_cc = 3;
+      EasyBuzzer.beep(
+          1000, // Frequency in hertz(HZ).
+          200,  // On Duration in milliseconds(ms).
+          200,  // Off Duration in milliseconds(ms).
+          1,    // The number of beeps per cycle.
+          0,    // Pause duration.
+          2     // The number of cycle.
+                // callback       // [Optional] Function to call when done.
+      );
     }
     if (GPS_fixed == false || key_cc == true)
     {
