@@ -701,7 +701,7 @@ void pedal_down_dect()
     pedal_down = false;
   }
 
-  if (analogRead(AIN1) > 1000 || pedal_up == true)
+  if (analogRead(AIN1) > 1000 && pedal_up == true)
   {
     pedal_up = false;
     pedal_down = true;
