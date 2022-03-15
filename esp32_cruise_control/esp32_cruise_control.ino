@@ -56,6 +56,7 @@ bool debug_ota = false;
 bool debug_adccal = false;
 bool debug_gps = false;
 bool debug_pid = false;
+bool debug_adda = false;
 
 String cstr;
 char buf[100];
@@ -218,6 +219,10 @@ void cmd_debug(MyCommandParser::Argument *args, char *response)
     {
       debug_pid = true;
     }
+    if (arg0 == "adda")
+    {
+      debug_adda = true;
+    }
   }
   else
   {
@@ -241,6 +246,10 @@ void cmd_debug(MyCommandParser::Argument *args, char *response)
     if (arg0 == "pid")
     {
       debug_pid = false;
+    }
+    if (arg0 == "adda")
+    {
+      debug_adda = false;
     }
   }
 }
@@ -379,6 +388,17 @@ void debug_info()
     cstr = "key val = " + cstr;
 
     // string to char array, length should increase 1 for null termination
+    cstr.toCharArray(buf, cstr.length() + 1);
+    Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
+  }
+  if (debug_adda == true)
+  {
+    Serial.print("\nAD DA debug: Ain1 = ");
+    Serial.print(analogRead(AIN1));
+    Serial.print("  Aout1 = ");
+    Serial.print(analogRead(AOUT1));
+
+    cstr = "\nAD DA debug: Ain1 = " + String(analogRead(AIN1)) + "  Aout1 = " + String(analogRead(AOUT1));
     cstr.toCharArray(buf, cstr.length() + 1);
     Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
   }
@@ -633,6 +653,7 @@ void PID_off()
 void setup()
 {
   // put your setup code here, to run once:
+  pinMode(AOUT1, INPUT); // AOUT1 is pin on toECU header6 and pin on ESP ADin for monitor DAC output
   EasyBuzzer.setPin(BUZZER);
   // beep 0.1s when boot up
   pinMode(BUZZER, OUTPUT);
