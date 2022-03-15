@@ -49,6 +49,8 @@ bool key_res = false;
 bool key_inc = false;
 bool key_dec = false;
 bool GPS_fixed = false;
+bool pedal_down = false;
+bool pedal_up = false;
 
 bool debug_sm = false;
 bool debug_keypad = false;
@@ -92,9 +94,13 @@ void SM_cc()
     {
       state_cc = 2;
     }
+    pedal_down = false;
+    pedal_up = false;
     break;
 
   case 2: // pre_cruise state
+    pedal_down = false;
+    pedal_up = false;
     if (key_set && GPS_fixed && speed_cur > 4)
     {
       state_cc = 3;
@@ -132,10 +138,28 @@ void SM_cc()
     if (GPS_fixed == false)
     {
       state_cc = 1;
+      EasyBuzzer.beep(
+          1000, // Frequency in hertz(HZ).
+          200,  // On Duration in milliseconds(ms).
+          200,  // Off Duration in milliseconds(ms).
+          1,    // The number of beeps per cycle.
+          0,    // Pause duration.
+          2     // The number of cycle.
+                // callback       // [Optional] Function to call when done.
+      );
     }
-    if (key_cancel)
+    if (key_cancel || pedal_down)
     {
       state_cc = 2;
+      EasyBuzzer.beep(
+          1000, // Frequency in hertz(HZ).
+          200,  // On Duration in milliseconds(ms).
+          200,  // Off Duration in milliseconds(ms).
+          1,    // The number of beeps per cycle.
+          0,    // Pause duration.
+          2     // The number of cycle.
+                // callback       // [Optional] Function to call when done.
+      );
     }
     break;
   default: // error state, return to state_cc = 0
@@ -666,6 +690,22 @@ void cruising_control()
   myPID.Compute();
   // Output;
   dac.setVoltage((unsigned int)Output, false);
+  pedal_down_dect();
+}
+
+void pedal_down_dect()
+{
+  if (analogRead(AIN1) < 700)
+  {
+    pedal_up = true;
+    pedal_down = false;
+  }
+
+  if (analogRead(AIN1) > 1000 || pedal_up == true)
+  {
+    pedal_up = false;
+    pedal_down = true;
+  }
 }
 
 void PID_init()
