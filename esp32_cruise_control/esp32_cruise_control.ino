@@ -458,7 +458,7 @@ void debug_info()
     cstr.toCharArray(buf, cstr.length() + 1);
     Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
   }
-  if(debug_loop == true)
+  if (debug_loop == true)
   {
     Serial.print("\ndebug loop: speed cur = ");
     Serial.print(speed_cur);
@@ -466,9 +466,11 @@ void debug_info()
     Serial.print(speed_set);
     Serial.print("  dac_val = ");
     Serial.print(int(Output));
+    Serial.print("  state = ");
+    Serial.print(state_cc);
     Serial.print("\n");
 
-    cstr = "debug loop: speed cur = " + String(speed_cur, 2) + "  set = " + String(speed_set, 2) + "  dac_val = " + String(int(Output));
+    cstr = "debug loop: speed cur = " + String(speed_cur, 2) + "  set = " + String(speed_set, 2) + "  dac_val = " + String(int(Output)) + "  state = " + String(state_cc);
     cstr.toCharArray(buf, cstr.length() + 1);
     Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
   }
