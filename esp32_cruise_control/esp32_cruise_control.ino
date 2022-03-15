@@ -75,7 +75,7 @@ char serialBuffer[bufferLength]; // 建立字符数组用于缓存
 double Setpoint, Input, Output;
 
 // Specify the links and initial tuning parameters
-double Kp = 2, Ki = 5, Kd = 1;
+double Kp = 200, Ki = 500, Kd = 100;
 PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
 
 void SM_cc()
@@ -119,6 +119,9 @@ void SM_cc()
     {
       state_cc = 2;
     }
+    break;
+  default: // error state, return to state_cc = 0
+    state_cc = 0;
     break;
   }
 }
@@ -186,15 +189,15 @@ void cmd_debug(MyCommandParser::Argument *args, char *response)
   arg1 = args[1].asInt64;
   if (arg0 == "kp")
   {
-    Kp = (double)arg1 / 100;
+    Kp = (double)arg1 / 10;
   }
   if (arg0 == "ki")
   {
-    Ki = (double)arg1 / 100;
+    Ki = (double)arg1 / 10;
   }
   if (arg0 == "kd")
   {
-    Kd = (double)arg1 / 100;
+    Kd = (double)arg1 / 10;
   }
   if (arg1 != 0)
   {
