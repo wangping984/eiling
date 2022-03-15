@@ -59,6 +59,7 @@ bool debug_adccal = false;
 bool debug_gps = false;
 bool debug_pid = false;
 bool debug_adda = false;
+bool debug_loop = false;
 
 String cstr;
 char buf[100];
@@ -268,6 +269,10 @@ void cmd_debug(MyCommandParser::Argument *args, char *response)
     {
       debug_adda = true;
     }
+    if (arg0 == "loop")
+    {
+      debug_loop = true;
+    }
   }
   else
   {
@@ -295,6 +300,10 @@ void cmd_debug(MyCommandParser::Argument *args, char *response)
     if (arg0 == "adda")
     {
       debug_adda = false;
+    }
+    if (arg0 == "loop")
+    {
+      debug_loop = false;
     }
   }
 }
@@ -446,6 +455,20 @@ void debug_info()
     Serial.print(analogRead(AOUT1));
 
     cstr = "\nAD DA debug: Ain1 = " + String(analogRead(AIN1)) + "  Ain2 = " + String(analogRead(AIN2)) + "  Aout1 = " + String(analogRead(AOUT1));
+    cstr.toCharArray(buf, cstr.length() + 1);
+    Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
+  }
+  if(debug_loop == true)
+  {
+    Serial.print("\ndebug loop: speed cur = ");
+    Serial.print(speed_cur);
+    Serial.print("  set = ");
+    Serial.print(speed_set);
+    Serial.print("  dac_val = ");
+    Serial.print(int(Output));
+    Serial.print("\n");
+
+    cstr = "debug loop: speed cur = " + String(speed_cur, 2) + "  set = " + String(speed_set, 2) + "  dac_val = " + String(int(Output));
     cstr.toCharArray(buf, cstr.length() + 1);
     Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
   }
