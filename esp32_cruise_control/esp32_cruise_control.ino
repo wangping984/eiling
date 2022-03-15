@@ -115,7 +115,7 @@ void SM_cc()
                 // callback       // [Optional] Function to call when done.
       );
     }
-    if (key_res && GPS_fixed && speed_set != 0)
+    if (key_res && GPS_fixed && speed_set != 0 && speed_cur > 4)
     {
       state_cc = 3;
       EasyBuzzer.beep(
@@ -148,7 +148,7 @@ void SM_cc()
                 // callback       // [Optional] Function to call when done.
       );
     }
-    if (key_cancel || pedal_down)
+    if (key_cancel || pedal_down || speed_cur < 4)
     {
       state_cc = 2;
       EasyBuzzer.beep(
