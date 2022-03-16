@@ -421,10 +421,14 @@ void key_pressed_detect()
     break;
   case 8: // increase
     key_inc = true;
+    if (state_cc == 3)
+      speed_set = speed_set + 2;
     EasyBuzzer.singleBeep(1000, 50);
     break;
   case 4: // decrease
     key_dec = true;
+    if (state_cc == 3)
+      speed_set = speed_set - 2;
     EasyBuzzer.singleBeep(1000, 50);
     break;
   }
@@ -731,10 +735,6 @@ void cruising_control()
   // Output;
   dac.setVoltage((unsigned int)Output, false);
   pedal_down_dect();
-  if (key_inc == true)
-    speed_set = speed_set + 2;
-  if (key_dec == true)
-    speed_set = speed_set - 2;
 }
 
 void pedal_down_dect()
