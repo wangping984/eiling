@@ -139,6 +139,7 @@ void SM_cc()
     if (GPS_fixed == false)
     {
       state_cc = 1;
+      Output = 500;
       EasyBuzzer.beep(
           1000, // Frequency in hertz(HZ).
           200,  // On Duration in milliseconds(ms).
@@ -152,6 +153,7 @@ void SM_cc()
     if (key_cancel || pedal_down || speed_cur < 4)
     {
       state_cc = 2;
+      Output = 500;
       EasyBuzzer.beep(
           1000, // Frequency in hertz(HZ).
           200,  // On Duration in milliseconds(ms).
@@ -754,7 +756,7 @@ void pedal_down_dect()
 
 void PID_init()
 {
-  myPID.SetOutputLimits(622, Out_max);
+  myPID.SetOutputLimits(500, Out_max);
   myPID.SetSampleTime(200); // 200ms PID update rate
   // PID parameters could adjusted by debug command
   myPID.SetTunings(Kp, Ki, Kd);
