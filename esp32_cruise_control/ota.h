@@ -1,4 +1,4 @@
-char response[1];
+char response[64];
 
 /*	jquery.min.js version 3.2.1
 
