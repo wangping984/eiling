@@ -78,7 +78,7 @@ char serialBuffer[bufferLength]; // 建立字符数组用于缓存
 double Setpoint, Input, Output;
 
 // Specify the links and initial tuning parameters
-double Kp = 100, Ki = 0, Kd = 0;
+double Kp = 50, Ki = 0, Kd = 0, Out_max = 2000;
 PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
 
 void SM_cc()
@@ -242,6 +242,10 @@ void cmd_debug(MyCommandParser::Argument *args, char *response)
   {
     Kd = (double)arg1 / 10;
   }
+  if (arg0 == "max")
+  {
+    Out_max = (double)arg1;
+  }
   if (arg1 != 0)
   {
     if (arg0 == "SM")
@@ -386,6 +390,19 @@ void key_pressed_detect()
   // bit 7, 128, B, key_res
   switch (onehot_key)
   {
+  case 64 + 128: // cancel + restore
+    EasyBuzzer.singleBeep(1000, 50);
+    if (debug_ota == false)
+    {
+      debug_ota = true;
+      ota_start();
+    }
+    if (debug_ota == true)
+    {
+      debug_ota = false;
+      ota_stop();
+    }
+    break;
   case 32: // cruise
     key_cc = true;
     EasyBuzzer.singleBeep(1000, 50);
@@ -737,7 +754,7 @@ void pedal_down_dect()
 
 void PID_init()
 {
-  myPID.SetOutputLimits(622, 2400);
+  myPID.SetOutputLimits(622, Out_max);
   myPID.SetSampleTime(200); // 200ms PID update rate
   // PID parameters could adjusted by debug command
   myPID.SetTunings(Kp, Ki, Kd);
