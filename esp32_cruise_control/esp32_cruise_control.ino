@@ -105,6 +105,7 @@ void SM_cc()
     if (key_set && GPS_fixed && speed_cur > 4)
     {
       state_cc = 3;
+      output = (double)(analogRead(AIN1) * 1.122 + 10.8);
       speed_set = speed_cur;
       EasyBuzzer.beep(
           1000, // Frequency in hertz(HZ).
@@ -119,6 +120,7 @@ void SM_cc()
     if (key_res && GPS_fixed && speed_set != 0 && speed_cur > 4)
     {
       state_cc = 3;
+      output = (double)(analogRead(AIN1) * 1.122 + 10.8);
       EasyBuzzer.beep(
           1000, // Frequency in hertz(HZ).
           200,  // On Duration in milliseconds(ms).
