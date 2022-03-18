@@ -78,7 +78,7 @@ char serialBuffer[bufferLength]; // 建立字符数组用于缓存
 double Setpoint, Input, Output;
 
 // Specify the links and initial tuning parameters
-double Kp = 50, Ki = 0, Kd = 0, Out_max = 2000;
+double Kp = 50, Ki = 0, Kd = 0, Out_min = -3000, Out_max = 3000;
 PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
 
 void SM_cc()
@@ -236,15 +236,15 @@ void cmd_debug(MyCommandParser::Argument *args, char *response)
   arg1 = args[1].asInt64;
   if (arg0 == "kp")
   {
-    Kp = (double)arg1 / 10;
+    Kp = (double)arg1;
   }
   if (arg0 == "ki")
   {
-    Ki = (double)arg1 / 10;
+    Ki = (double)arg1;
   }
   if (arg0 == "kd")
   {
-    Kd = (double)arg1 / 10;
+    Kd = (double)arg1;
   }
   if (arg0 == "max")
   {
@@ -736,8 +736,14 @@ void cruising_control()
   // turn the PID on
   myPID.SetMode(AUTOMATIC);
   myPID.Compute();
-  // Output;
-  dac.setVoltage((unsigned int)Output, false);
+  // Output range from Out_min, Out_max
+  // add extra limiter outside PID controller
+  if (Output < 500)
+    dac.setVoltage(500, false);
+  else if (Output > 2000)
+    dac.setVoltage(2000, false);
+  else
+    dac.setVoltage((unsigned int)Output, false);
   pedal_down_dect();
 }
 
@@ -758,7 +764,7 @@ void pedal_down_dect()
 
 void PID_init()
 {
-  myPID.SetOutputLimits(500, Out_max);
+  myPID.SetOutputLimits(Out_min, Out_max);
   myPID.SetSampleTime(200); // 200ms PID update rate
   // PID parameters could adjusted by debug command
   myPID.SetTunings(Kp, Ki, Kd);
