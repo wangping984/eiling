@@ -82,7 +82,7 @@ char serialBuffer[bufferLength]; // 建立字符数组用于缓存
 double Setpoint, Input, Output;
 
 // Specify the links and initial tuning parameters
-double Kp = 50, Ki = 0, Kd = 0, Out_min = -3000, Out_max = 3000;
+double Kp = 80, Ki = 5, Kd = 2, Out_min = -3000, Out_max = 3000;
 PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
 
 void SM_cc()
@@ -110,6 +110,7 @@ void SM_cc()
     {
       state_cc = CRUISING;
       dac_val = (int)(analogRead(AIN1) * 1.122 + 10.8);
+      Output = 0;
       speed_set = speed_cur;
       EasyBuzzer.beep(
           1000, // Frequency in hertz(HZ).
@@ -124,7 +125,7 @@ void SM_cc()
     if (key_res && GPS_fixed && speed_set != 0 && speed_cur > 4)
     {
       state_cc = CRUISING;
-      dac_val = 800;
+      Output = 0;
       EasyBuzzer.beep(
           1000, // Frequency in hertz(HZ).
           200,  // On Duration in milliseconds(ms).
@@ -497,7 +498,7 @@ void debug_info()
     Serial.print(state_cc);
     Serial.print("\n");
 
-    cstr = "debug loop: speed cur = " + String(speed_cur, 2) + "  set = " + String(speed_set, 2) + "  dac_val = " + String(int(Output)) + "  state = " + String(state_cc);
+    cstr = "debug loop: Input = " + String(Input, 1) + "  set = " + String(Setpoint, 1) + "  Output = " + String(Output, 1) + "  dac_val = " + String(dac_val);
     cstr.toCharArray(buf, cstr.length() + 1);
     Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
   }
@@ -746,14 +747,13 @@ void cruising_control()
   {
     startMillis[2] = millis();
 
-    // dac_val should limit to [500, 2000]
-    dac_val = dac_val + (int)Output;
-    if (dac_val < 500)
+    //  should limit to [500, 2000]
+    if (dac_val + (int)Output < 500)
       dac.setVoltage(500, false);
-    else if (dac_val > 2000)
+    else if (dac_val + (int)Output > 2000)
       dac.setVoltage(2000, false);
     else
-      dac.setVoltage(dac_val, false);
+      dac.setVoltage(dac_val + (int)Output, false);
   }
 
   pedal_down_dect();
