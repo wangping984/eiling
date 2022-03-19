@@ -38,8 +38,12 @@ unsigned long startMillis[3]; // some global variables available anywhere in the
 unsigned long currentMillis[3];
 const unsigned long period[3] = {200, 300, 1000};
 
-int state_cc = 0;
-int state_prev_cc = 0;
+#define INIT 0
+#define PASS_THRU 1
+#define ARMED 2
+#define CRUISING 3
+int state_cc = INIT;
+int state_prev_cc = INIT;
 float speed_set = 0;
 
 bool key_cc = false;
@@ -86,25 +90,25 @@ void SM_cc()
   state_prev_cc = state_cc;
   switch (state_cc)
   {
-  case 0: // INIT state
-    state_cc = 1;
+  case INIT: // INIT state
+    state_cc = PASS_THRU;
     break;
 
-  case 1: // pass thru state
+  case PASS_THRU: // pass thru state
     if (key_cc && GPS_fixed)
     {
-      state_cc = 2;
+      state_cc = ARMED;
     }
     pedal_down = false;
     pedal_up = false;
     break;
 
-  case 2: // pre_cruise state
+  case ARMED: // pre_cruise state
     pedal_down = false;
     pedal_up = false;
     if (key_set && GPS_fixed && speed_cur > 4)
     {
-      state_cc = 3;
+      state_cc = CRUISING;
       Output = (double)(analogRead(AIN1) * 1.122 + 10.8);
       speed_set = speed_cur;
       EasyBuzzer.beep(
@@ -119,7 +123,7 @@ void SM_cc()
     }
     if (key_res && GPS_fixed && speed_set != 0 && speed_cur > 4)
     {
-      state_cc = 3;
+      state_cc = CRUISING;
       Output = (double)(analogRead(AIN1) * 1.122 + 10.8);
       EasyBuzzer.beep(
           1000, // Frequency in hertz(HZ).
@@ -133,14 +137,14 @@ void SM_cc()
     }
     if (GPS_fixed == false || key_cc == true)
     {
-      state_cc = 1;
+      state_cc = PASS_THRU;
     }
     break;
 
-  case 3: // cruising state
+  case CRUISING: // cruising state
     if (GPS_fixed == false)
     {
-      state_cc = 1;
+      state_cc = PASS_THRU;
       Output = 500;
       EasyBuzzer.beep(
           1000, // Frequency in hertz(HZ).
@@ -154,7 +158,7 @@ void SM_cc()
     }
     if (key_cancel || pedal_down || speed_cur < 4)
     {
-      state_cc = 2;
+      state_cc = ARMED;
       Output = 500;
       EasyBuzzer.beep(
           1000, // Frequency in hertz(HZ).
@@ -167,8 +171,8 @@ void SM_cc()
       );
     }
     break;
-  default: // error state, return to state_cc = 0
-    state_cc = 0;
+  default: // error state, return to state_cc = INIT
+    state_cc = INIT;
     break;
   }
 }
@@ -425,13 +429,13 @@ void key_pressed_detect()
     break;
   case 8: // increase
     key_inc = true;
-    if (state_cc == 3)
+    if (state_cc == CRUISING)
       speed_set = speed_set + 2;
     EasyBuzzer.singleBeep(1000, 50);
     break;
   case 4: // decrease
     key_dec = true;
-    if (state_cc == 3)
+    if (state_cc == CRUISING)
       speed_set = speed_set - 2;
     EasyBuzzer.singleBeep(1000, 50);
     break;
@@ -483,13 +487,13 @@ void debug_info()
     cstr.toCharArray(buf, cstr.length() + 1);
     Udp.writeTo((const uint8_t *)buf, cstr.length(), remoteUDP_Ip, UdpPort);
   }
-  if (debug_loop == true)
+  if (debug_loop == true && state_cc == CRUISING)
   {
-    Serial.print("\ndebug loop: speed cur = ");
-    Serial.print(speed_cur);
+    Serial.print("\ndebug loop: Input = ");
+    Serial.print((int)Input);
     Serial.print("  set = ");
-    Serial.print(speed_set);
-    Serial.print("  dac_val = ");
+    Serial.print((int)Setpoint);
+    Serial.print("  output = ");
     Serial.print(int(Output));
     Serial.print("  state = ");
     Serial.print(state_cc);
@@ -836,12 +840,12 @@ void loop()
       EasyBuzzer.update();
 
       GPS_parse();
-      if (state_cc != 3)
+      if (state_cc != CRUISING)
       {
         PID_off();
         pass_thru();
       }
-      else // state_cc == 3, cruising
+      else // state_cc == CRUISING, cruising
       {
         cruising_control();
       }
