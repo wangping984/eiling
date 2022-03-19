@@ -109,7 +109,7 @@ void SM_cc()
     if (key_set && GPS_fixed && speed_cur > 4)
     {
       state_cc = CRUISING;
-      Output = (double)(analogRead(AIN1) * 1.122 + 10.8);
+      dac_val = (int)(analogRead(AIN1) * 1.122 + 10.8);
       speed_set = speed_cur;
       EasyBuzzer.beep(
           1000, // Frequency in hertz(HZ).
@@ -124,7 +124,7 @@ void SM_cc()
     if (key_res && GPS_fixed && speed_set != 0 && speed_cur > 4)
     {
       state_cc = CRUISING;
-      Output = (double)(analogRead(AIN1) * 1.122 + 10.8);
+      dac_val = 800;
       EasyBuzzer.beep(
           1000, // Frequency in hertz(HZ).
           200,  // On Duration in milliseconds(ms).
@@ -145,7 +145,6 @@ void SM_cc()
     if (GPS_fixed == false)
     {
       state_cc = PASS_THRU;
-      Output = 500;
       EasyBuzzer.beep(
           1000, // Frequency in hertz(HZ).
           200,  // On Duration in milliseconds(ms).
@@ -159,7 +158,6 @@ void SM_cc()
     if (key_cancel || pedal_down || speed_cur < 4)
     {
       state_cc = ARMED;
-      Output = 500;
       EasyBuzzer.beep(
           1000, // Frequency in hertz(HZ).
           200,  // On Duration in milliseconds(ms).
@@ -737,17 +735,27 @@ void cruising_control()
   // output parameters: dac voltage
   Setpoint = (double)speed_set;
   Input = (double)speed_cur;
+  // update parameters of PID
+  myPID.SetTunings(Kp, Ki, Kd);
   // turn the PID on
   myPID.SetMode(AUTOMATIC);
   myPID.Compute();
-  // Output range from Out_min, Out_max
-  // add extra limiter outside PID controller
-  if (Output < 500)
-    dac.setVoltage(500, false);
-  else if (Output > 2000)
-    dac.setVoltage(2000, false);
-  else
-    dac.setVoltage((unsigned int)Output, false);
+
+  // CRUISING DAC update rate == PID update rate
+  if (millis() - startMillis[2] >= 200) // test whether the period has elapsed
+  {
+    startMillis[2] = millis();
+
+    // dac_val should limit to [500, 2000]
+    dac_val = dac_val + (int)Output;
+    if (dac_val < 500)
+      dac.setVoltage(500, false);
+    else if (dac_val > 2000)
+      dac.setVoltage(2000, false);
+    else
+      dac.setVoltage(dac_val, false);
+  }
+
   pedal_down_dect();
 }
 
