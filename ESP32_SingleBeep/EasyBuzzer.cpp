@@ -46,6 +46,8 @@ void EasyBuzzerClass::beep(unsigned int frequency, unsigned int const onDuration
 	mFinishedCallbackFunction = NULL;
 	mStartTime = max(millis(), 1);
 	mLastRunTime = 0;
+	ledcAttachPin(mPin, mChannel);
+	ledcWriteTone(mChannel, mFreq);
 	update();
 }
 /* Beep sequence at a given frequency, with callback functionality. */
@@ -60,6 +62,8 @@ void EasyBuzzerClass::beep(unsigned int frequency, unsigned int const onDuration
 	mFinishedCallbackFunction = finishedCallbackFunction;
 	mStartTime = max(millis(), 1);
 	mLastRunTime = 0;
+	ledcAttachPin(mPin, mChannel);
+	ledcWriteTone(mChannel, mFreq);
 	update();
 }
 /* Start beeping at a given frequency, for an specific duration. */
@@ -136,8 +140,6 @@ void EasyBuzzerClass::update()
 #if defined ESP32
 	if (timeInSequence < blinkingDuration && timeInSequence % blinkDuration < mOnDuration)
 	{
-		ledcAttachPin(mPin, mChannel);
-		ledcWriteTone(mChannel, mFreq);
 	}
 	else
 	{
