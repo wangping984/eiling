@@ -8,7 +8,7 @@
 #include <WebServer.h>
 #include <Update.h>
 #include <Adafruit_GPS.h>
-#include <EasyBuzzer.h>
+#include "EasyBuzzer.h"
 #include "ota.h"
 #include <PID_v1.h>
 
@@ -112,29 +112,15 @@ void SM_cc()
       dac_val = (int)(analogRead(AIN1) * 1.122 + 10.8);
       Output = 0;
       speed_set = speed_cur;
-      EasyBuzzer.beep(
-          1000, // Frequency in hertz(HZ).
-          200,  // On Duration in milliseconds(ms).
-          200,  // Off Duration in milliseconds(ms).
-          1,    // The number of beeps per cycle.
-          0,    // Pause duration.
-          2     // The number of cycle.
-                // callback       // [Optional] Function to call when done.
-      );
+      EasyBuzzer.stopBeep();
+      EasyBuzzer.singleBeep(1000, 300);
     }
     if (key_res && GPS_fixed && speed_set != 0 && speed_cur > 4)
     {
       state_cc = CRUISING;
-      Output = 0;
-      EasyBuzzer.beep(
-          1000, // Frequency in hertz(HZ).
-          200,  // On Duration in milliseconds(ms).
-          200,  // Off Duration in milliseconds(ms).
-          1,    // The number of beeps per cycle.
-          0,    // Pause duration.
-          2     // The number of cycle.
-                // callback       // [Optional] Function to call when done.
-      );
+      Output = (double)(analogRead(AIN1) * 1.122 + 10.8);
+      EasyBuzzer.stopBeep();
+      EasyBuzzer.singleBeep(1000, 300);
     }
     if (GPS_fixed == false || key_cc == true)
     {
@@ -146,26 +132,30 @@ void SM_cc()
     if (GPS_fixed == false)
     {
       state_cc = PASS_THRU;
+      Output = 500;
+      EasyBuzzer.stopBeep();
       EasyBuzzer.beep(
           1000, // Frequency in hertz(HZ).
-          200,  // On Duration in milliseconds(ms).
-          200,  // Off Duration in milliseconds(ms).
-          1,    // The number of beeps per cycle.
-          0,    // Pause duration.
-          2     // The number of cycle.
+          50,   // On Duration in milliseconds(ms).
+          100,  // Off Duration in milliseconds(ms).
+          2,    // The number of beeps per cycle.
+          1,    // Pause duration.
+          1     // The number of cycle.
                 // callback       // [Optional] Function to call when done.
       );
     }
     if (key_cancel || pedal_down || speed_cur < 4)
     {
       state_cc = ARMED;
+      Output = 500;
+      EasyBuzzer.stopBeep();
       EasyBuzzer.beep(
           1000, // Frequency in hertz(HZ).
-          200,  // On Duration in milliseconds(ms).
-          200,  // Off Duration in milliseconds(ms).
-          1,    // The number of beeps per cycle.
-          0,    // Pause duration.
-          2     // The number of cycle.
+          50,   // On Duration in milliseconds(ms).
+          100,  // Off Duration in milliseconds(ms).
+          2,    // The number of beeps per cycle.
+          1,    // Pause duration.
+          1     // The number of cycle.
                 // callback       // [Optional] Function to call when done.
       );
     }
@@ -795,11 +785,16 @@ void setup()
   pinMode(AIN1, INPUT);
   pinMode(AIN2, INPUT);
   EasyBuzzer.setPin(BUZZER);
-  // beep 0.1s when boot up
-  pinMode(BUZZER, OUTPUT);
-  digitalWrite(BUZZER, 1);
-  delay(50);
-  digitalWrite(BUZZER, 0);
+  // beep when boot up
+  EasyBuzzer.beep(
+      1000, // Frequency in hertz(HZ).
+      50,   // On Duration in milliseconds(ms).
+      100,  // Off Duration in milliseconds(ms).
+      3,    // The number of beeps per cycle.
+      1,    // Pause duration.
+      1     // The number of cycle.
+            // callback       // [Optional] Function to call when done.
+  );
   // set the resolution to 12 bits (0-4095)
   analogReadResolution(12);
   wifi_init();
@@ -863,7 +858,6 @@ void loop()
       {
         startMillis[0] = millis();
         debug_info();
-        EasyBuzzer.stopBeep();
       }
       // [1] for keypad detect rate
       if (millis() - startMillis[1] >= period[1]) // test whether the period has elapsed
