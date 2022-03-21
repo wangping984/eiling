@@ -147,7 +147,8 @@ void EasyBuzzerClass::update()
 		ledcWrite(mChannel, 0);
 		ledcDetachPin(mPin);
 	};
-#else if (timeInSequence < blinkingDuration && timeInSequence % blinkDuration < mOnDuration)
+#else
+	if (timeInSequence < blinkingDuration && timeInSequence % blinkDuration < mOnDuration)
 	{
 		tone(mPin, mFreq);
 	}
