@@ -1,10 +1,10 @@
 /*
-Name:		EasyBuzzer.cpp
-Version:	1.0.3
-Created:	9/29/2017 12:03:48 AM
-Updated:	2/19/2019 12:19:00 AM
-Author:		Evert Arias
-Github:		https://github.com/evert-arias/EasyBuzzer
+  Name:		EasyBuzzer.cpp
+  Version:	1.0.3
+  Created:	9/29/2017 12:03:48 AM
+  Updated:	2/19/2019 12:19:00 AM
+  Author:		Evert Arias
+  Github:		https://github.com/evert-arias/EasyBuzzer
 			Copyright (c) 2019 Evert Arias
 */
 
@@ -46,8 +46,6 @@ void EasyBuzzerClass::beep(unsigned int frequency, unsigned int const onDuration
 	mFinishedCallbackFunction = NULL;
 	mStartTime = max(millis(), 1);
 	mLastRunTime = 0;
-	ledcAttachPin(mPin, mChannel);
-	ledcWriteTone(mChannel, mFreq);
 	update();
 }
 /* Beep sequence at a given frequency, with callback functionality. */
@@ -62,8 +60,6 @@ void EasyBuzzerClass::beep(unsigned int frequency, unsigned int const onDuration
 	mFinishedCallbackFunction = finishedCallbackFunction;
 	mStartTime = max(millis(), 1);
 	mLastRunTime = 0;
-	ledcAttachPin(mPin, mChannel);
-	ledcWriteTone(mChannel, mFreq);
 	update();
 }
 /* Start beeping at a given frequency, for an specific duration. */
@@ -140,13 +136,18 @@ void EasyBuzzerClass::update()
 #if defined ESP32
 	if (timeInSequence < blinkingDuration && timeInSequence % blinkDuration < mOnDuration)
 	{
+		if (ledcRead(mChannel) == 0)
+		{
+			ledcAttachPin(mPin, mChannel);
+			ledcWriteTone(mChannel, mFreq);
+		}
 	}
 	else
 	{
+		ledcWrite(mChannel, 0);
 		ledcDetachPin(mPin);
 	};
-#else
-	if (timeInSequence < blinkingDuration && timeInSequence % blinkDuration < mOnDuration)
+#else if (timeInSequence < blinkingDuration && timeInSequence % blinkDuration < mOnDuration)
 	{
 		tone(mPin, mFreq);
 	}

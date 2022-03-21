@@ -1,27 +1,39 @@
+
+
+
+
 /*
-	EasyBuzzer - Single Beep Example
-	This example shows single beeps methods.
-	Copyright (c) 2017, Evert Arias
-	MIT License
+  EasyBuzzer - Beep Sequence
+  This example shows you how to create a sequence of beeps, at a given frequency.
+  Copyright (c) 2017, Evert Arias
+  MIT License
 */
 
 #include "EasyBuzzer.h"
 #define BUZZER 10
-unsigned int frequency = 1000;
-unsigned int duration = 1000;
+unsigned int frequency = 1000;  
+unsigned int onDuration = 50;
+unsigned int offDuration = 100;
+unsigned int beeps = 2;
+unsigned int pauseDuration = 500;
+unsigned int cycles = 10;
 
 void done() {
-  Serial.println("Done!");
+  Serial.print("Done!");
 }
 
 void setup() {
   Serial.begin(115200);
   EasyBuzzer.setPin(BUZZER);
-  /* Single beep at a given frequency, for an specific duration, with callback functionality */
-  EasyBuzzer.singleBeep(
-    frequency, 	// Frequency in hertz(HZ).
-    duration, 	// Duration of the beep in milliseconds(ms).
-    done		// [Optional] Function to call when done.
+  /* Start a beeping sequence. */
+  EasyBuzzer.beep(
+    frequency,    // Frequency in hertz(HZ). 
+    onDuration,   // On Duration in milliseconds(ms).
+    offDuration,  // Off Duration in milliseconds(ms).
+    beeps,      // The number of beeps per cycle.
+    pauseDuration,  // Pause duration.
+    cycles,     // The number of cycle.
+    done      // [Optional] Callback. A function to call when the sequence ends.
   );
 }
 
